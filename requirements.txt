@@ -3,3 +3,4 @@ transformers
 tiktoken
 transformers_stream_generator 
 einops
+matplotlib
