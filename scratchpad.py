@@ -1,6 +1,6 @@
 #%%
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, Cache
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -25,6 +25,23 @@ def forward_pass(model, tokenizer, length):
 model_name = "Qwen/Qwen-1_8B-Chat"
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, pad_token="<|endoftext|>")
 model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True).to("cuda")
+#%%
+batch_size = 4
+sequence_length = 2  # Use the same length for both old and new tokens
+
+batched_old_tokens = torch.randint(0, tokenizer.vocab_size, (batch_size, sequence_length)).to("cuda")
+batched_new_tokens = torch.randint(0, tokenizer.vocab_size, (batch_size, sequence_length+2)).to("cuda")
+
+batched_old_kv = model.forward(batched_old_tokens, return_dict=True).past_key_values
+
+batched_generation = model.generate(batched_new_tokens, past_key_values=batched_old_kv, max_new_tokens=5)
+# 
+# repeated_old_kv = tuple(
+#    tuple(tensor.expand(batch_size, *tensor.shape[1:]) for tensor in layer)
+#    for layer in old_kv_cache
+#)
+
+#batched_repeat = model.generate(batched_new_tokens, past_key_values=batched_old_kv, max_new_tokens=5, num_return_sequences=batch_size)
 #%%
 
 total_tokens = 100
@@ -94,3 +111,5 @@ predicted_batch_memory =[estimate_memory_usage(10, batch_size) for batch_size in
 plt.plot(batch_sizes, batch_memory_usage)
 plt.plot(batch_sizes, predicted_batch_memory)
 # %%
+
+
