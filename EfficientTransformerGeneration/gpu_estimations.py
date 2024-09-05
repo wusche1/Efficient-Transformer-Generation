@@ -33,12 +33,17 @@ def generate_gpu_usage_estimator(model, tokenizer,gen_tokens, base_input = 10, b
         batch_slope = batch_slope_base + (input_length - base_input)*batch_slope_slope
         return input_slope * input_length + batch_slope * (batch_size-1) + y_intercept
     
+    def get_batchsize(input_length, memory, safety_factor = .9):
+        batch_slope = batch_slope_base + (input_length - base_input)*batch_slope_slope
+        ideal_batch_size = (memory - y_intercept - input_slope * input_length) / batch_slope + 1
+        return int(ideal_batch_size * safety_factor)
+    
     #assert, that under the 4 conditions where we know the memory usage, the function is correct
     assert base_gpu == estimate_memory_usage(base_input, base_batch), f"Base GPU: {base_gpu}, Estimated: {estimate_memory_usage(base_input, base_batch)}"
     assert step_up_input_gpu == estimate_memory_usage(base_input + step_input, base_batch), f"Step up input GPU: {step_up_input_gpu}, Estimated: {estimate_memory_usage(base_input + step_input, base_batch)}"
     assert step_up_batch_gpu == estimate_memory_usage(base_input, base_batch + step_batch), f"Step up batch GPU: {step_up_batch_gpu}, Estimated: {estimate_memory_usage(base_input, base_batch + step_batch)}"
     assert step_up_batch_input_gpu == estimate_memory_usage(base_input + step_input, base_batch + step_batch), f"Step up batch input GPU: {step_up_batch_input_gpu}, Estimated: {estimate_memory_usage(base_input + step_input, base_batch + step_batch)}"
-    return estimate_memory_usage
+    return estimate_memory_usage, get_batchsize
 #%%
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -61,7 +66,7 @@ if __name__ == "__main__":
     batch_momory = [ measure_memory_usage(lambda: generate_text(model, tokenizer, input_lengths[0], gen_length, batch_size)) for batch_size in batch_sizes]
 #%%
 if __name__ == "__main__":
-    estimate_memory_usage = generate_gpu_usage_estimator(model, tokenizer, gen_length)
+    estimate_memory_usage, get_batchsize = generate_gpu_usage_estimator(model, tokenizer, gen_length)
 
     predicted_batch_memory = [estimate_memory_usage(input_lengths[0], batch_size) for batch_size in batch_sizes]
     predicted_input_memory = [estimate_memory_usage(length) for length in input_lengths]
@@ -109,4 +114,36 @@ if __name__ == "__main__":
         slopes.append((memory_list_list[i][0]-memory_list_list[i][-1])/(batch_sizes[0]-batch_sizes[-1]))
     
     plt.plot(input_lengths, slopes)
+# %%
+if __name__ == "__main__":
+    #test get_batchsize
+    input_lengths = [10, 20, 30, 40, 50]
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    free_mb = torch.cuda.get_device_properties(0).total_memory / 1024**2 - torch.cuda.memory_allocated(0) / 1024**2 if torch.cuda.is_available() else 0
+    batch_sizes = [get_batchsize(input_length, free_mb, safety_factor=0.99) for input_length in input_lengths]
+
+    results = []
+    for input_length, batch_size in zip(input_lengths, batch_sizes):
+        try:
+            torch.cuda.reset_peak_memory_stats()
+            generate_text(model, tokenizer, input_length, gen_length, batch_size)
+            max_memory = torch.cuda.max_memory_allocated() / 1024**2
+            free_left = free_mb - max_memory
+            percentage_used = max_memory / free_mb
+            results.append((input_length, batch_size, "success", free_left, percentage_used))
+        except RuntimeError as e:
+            if "out of memory" in str(e):
+                max_memory = torch.cuda.max_memory_allocated() / 1024**2
+                free_left = free_mb - max_memory
+                percentage_used = max_memory / free_mb
+                results.append((input_length, batch_size, "fail", free_left, percentage_used))
+            else:
+                raise e
+        
+        print(f"Input length: {input_length}, Batch size: {batch_size}, Result: {results[-1][2]}, Free memory left: {results[-1][3]:.2f} MB, Percentage used: {results[-1][4]:.2f}")
+
+    # Print summary
+    print("\nSummary:")
+    for result in results:
+        print(f"Input length: {result[0]}, Batch size: {result[1]}, Status: {result[2]}, Free memory left: {result[3]:.2f} MB")
 # %%

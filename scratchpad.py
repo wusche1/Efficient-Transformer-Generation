@@ -25,7 +25,18 @@ def forward_pass(model, tokenizer, length):
 model_name = "Qwen/Qwen-1_8B-Chat"
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, pad_token="<|endoftext|>")
 model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True).to("cuda")
+#%%
 
+total_tokens = 100
+gpu_mem_list = []
+input_lengths = list(range(20,80, 5))
+for input_length in input_lengths:
+    gpu_mem_list.append(measure_memory_usage(lambda: generate_text(model, tokenizer, input_length, total_tokens - input_length)))
+
+plt.plot(input_lengths, gpu_mem_list)
+
+
+#%%
 # Measure memory usage
 gen_length = 50
 input_lengths = list(range(1, 30))
