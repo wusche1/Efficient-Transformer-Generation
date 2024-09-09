@@ -53,7 +53,7 @@ class CompletionDataset:
         sorted_indeces = self.data.sort_values("input_ids_length").index
         #reverse the indeces
         sorted_indeces = sorted_indeces[::-1]
-        print(sorted_indeces)
+        #print(sorted_indeces)
         indeces = sorted_indeces.tolist()
         _, get_batchsize = generate_gpu_usage_estimator(self.model, self.tokenizer, self.completion_length)
         known_ok_batch_size = 0
