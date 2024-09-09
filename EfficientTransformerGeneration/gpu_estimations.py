@@ -2,17 +2,65 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-def measure_memory_usage(func):
+import gc
+
+def measure_memory_usage(func, return_value = None):
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
-    func()
-    return torch.cuda.max_memory_allocated()/ (1024 * 1024)
+    v = func()
+    memory = torch.cuda.max_memory_allocated()/ (1024 * 1024)
+    if return_value:
+        return v, memory
+    return memory
+
+
+def execute_and_measure_memory(func, *args, **kwargs):
+    """
+    Execute a function and measure its GPU memory utilization.
+    
+    Args:
+    func (callable): The function to execute.
+    *args: Positional arguments to pass to the function.
+    **kwargs: Keyword arguments to pass to the function.
+    
+    Returns:
+    tuple: A tuple containing (function_return_value, memory_utilization_rate)
+    """
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. This function requires a GPU.")
+
+    # Clear cache and collect garbage to get a clean start
+    torch.cuda.empty_cache()
+    gc.collect()
+
+    # Get total GPU memory
+    total_memory = torch.cuda.get_device_properties(0).total_memory
+    
+    # Record initial used memory
+    initial_used_memory = torch.cuda.memory_allocated()
+
+    # Execute the function and capture its return value
+    try:
+        return_value = func(*args, **kwargs)
+    finally:
+        # Measure peak memory usage
+        peak_memory = torch.cuda.max_memory_allocated()
+        
+        # Calculate memory utilization rate
+        memory_utilization_rate = peak_memory / total_memory
+
+        # Reset peak memory stats
+        torch.cuda.reset_peak_memory_stats()
+
+    return return_value, memory_utilization_rate
+
+
 
 def generate_text(model, tokenizer, input_length, gen_length, batch_size = 1):
     input_ids = torch.randint(0, tokenizer.vocab_size, (batch_size, input_length), device=model.device)
     with torch.no_grad():
         text = model.generate(input_ids, max_new_tokens = gen_length, min_new_tokens = gen_length, do_sample=True)
-        print(text.shape)
+        #print(text.shape)
 
 def generate_gpu_usage_estimator(model, tokenizer,gen_tokens, base_input = 10, base_batch = 1, step_input = 10, step_batch = 5):
     base_gpu = measure_memory_usage(lambda: generate_text(model, tokenizer, base_input, gen_tokens, base_batch))

@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 import sys
 import os
+from tqdm import tqdm
 sys.path.append(os.path.abspath('.'))
-from gpu_estimations import generate_gpu_usage_estimator
+from gpu_estimations import generate_gpu_usage_estimator, measure_memory_usage, execute_and_measure_memory
 #%%
 
 default_chat_template ="""{% for message in messages %}
@@ -30,21 +31,53 @@ class CompletionDataset:
         self.device = model.device
         if memory_mb is None:
             device = model.device
-            free_mb = torch.cuda.get_device_properties(device).total_memory / 1024**2 - torch.cuda.memory_allocated(device) / 1024**2 if torch.cuda.is_available() else 0
-        self.memory_mb = free_mb
+            memory_mb = torch.cuda.get_device_properties(device).total_memory / 1024**2 - torch.cuda.memory_allocated(device) / 1024**2
+        self.memory_mb = memory_mb
         self.system_prompt = system_prompt
     
-    def complete_all(self):
+    def complete_all(self, verbose = False):
         sorted_indeces = self.data.sort_values("input_ids_length").index
+        print(sorted_indeces)
         indeces = sorted_indeces.tolist()
         _, get_batchsize = generate_gpu_usage_estimator(self.model, self.tokenizer, self.completion_length)
-        known_ok_batch_size = np.inf
-        current_batch_size = get_batchsize(indeces[0])
+        known_ok_batch_size = 0
+        #define a progress bar with the total number of indeces
+        pbar = tqdm(total=len(indeces))
+        current_batch_size = get_batchsize(indeces[0], self.memory_mb)
         while len(indeces) > 0:
-            
-            recommended_batch_size = self.get_batchsize(indeces[0])
-            indeces = indeces[recommended_batch_size:]
-            if not self.complete_indeces(indeces):
+            current_batch_size = max(known_ok_batch_size, current_batch_size)
+            current_indeces = indeces[:current_batch_size]
+
+            return_value, mem_utilization = execute_and_measure_memory(self.complete_indeces, current_indeces)
+            if return_value:
+                if verbose:
+                    print(f"Batch size {current_batch_size} OK")
+                    print(f"Memory utilization: {mem_utilization:.2f} %")
+                known_ok_batch_size = max(known_ok_batch_size, current_batch_size)
+                #update the progress bar
+                pbar.update(current_batch_size)
+                #drop the used indeces from the indeces list
+                indeces = indeces[current_batch_size:]
+                if len(indeces) > 0:
+                    if mem_utilization < 0.9:
+                        if verbose:
+                            print(f"Batch size {current_batch_size} too small")
+                            enlarge_factor = 1/mem_utilization
+                            enlarge_factor = (enlarge_factor-1)/2 + 1
+                            enlarge_factor = min(enlarge_factor, 1.25)
+                        current_batch_size = max(known_ok_batch_size, int(current_batch_size*enlarge_factor))
+                    else:
+                        current_batch_size = get_batchsize(indeces[0], self.memory_mb)
+                
+                    
+            else:
+                if verbose:
+                    print(f"Batch size {current_batch_size} too large")
+                current_batch_size = max(known_ok_batch_size, int(current_batch_size*0.75))
+                #clear the cache
+                torch.cuda.empty_cache()
+                
+
 
 
     def complete_indeces(self, indeces):
@@ -109,14 +142,13 @@ class CompletionDataset:
             else:
                 raise e
 
-            return False
     def get_template_tokens(self):
         tokenizer = self.tokenizer
         string_1 = "A"
         string_2 = "B"
 
         convs = [[
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": string}] for string in [string_1, string_2]
         ]
         conv_tokens = [tokenizer.apply_chat_template(conv, return_tensors="pt", add_generation_prompt=True) for conv in convs]
@@ -174,14 +206,51 @@ completion_dataset.tokenize_data()
 # %%
 completion_dataset.get_template_tokens()
 # %%
-completion_idx = list(range(10))
-completion_dataset.complete_indeces(completion_idx)
+completion_dataset.complete_all(verbose=True)
 # %%
-comp = completion_dataset.data["Qwen/Qwen-1_8B-Chat_completions"][:10]
+completion_dataset.data
 # %%
 
+# %%
+import torch
+import gc
 
-for c in comp:
-    print(c)
+def measure_gpu_memory(func, *args, **kwargs):
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. This function requires a GPU.")
 
+    torch.cuda.empty_cache()
+    gc.collect()
+
+    total_memory = torch.cuda.get_device_properties(0).total_memory
+    initial_used_memory = torch.cuda.memory_allocated()
+    
+    min_free_memory = total_memory - initial_used_memory
+    max_used_memory = initial_used_memory
+
+    def check_memory():
+        nonlocal min_free_memory, max_used_memory
+        current_used_memory = torch.cuda.memory_allocated()
+        current_free_memory = total_memory - current_used_memory
+        min_free_memory = min(min_free_memory, current_free_memory)
+        max_used_memory = max(max_used_memory, current_used_memory)
+
+    try:
+        result = func(*args, **kwargs)
+    finally:
+        check_memory()
+
+    return min_free_memory, max_used_memory, result
+
+# Example usage:
+def gpu_intensive_function():
+    x = torch.randn(10000, 10000, device='cuda')
+    y = torch.matmul(x, x.t())
+    return y.sum().item()
+
+min_free_memory, max_used_memory, result = measure_gpu_memory(gpu_intensive_function)
+
+print(f"Minimum free GPU memory during execution: {min_free_memory / 1024**2:.2f} MB")
+print(f"Maximum used GPU memory during execution: {max_used_memory / 1024**2:.2f} MB")
+print(f"Function result: {result}")
 # %%
