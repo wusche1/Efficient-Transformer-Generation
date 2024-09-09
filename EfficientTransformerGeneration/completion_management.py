@@ -126,10 +126,10 @@ class CompletionDataset:
             attention_mask = torch.cat([beginning_mask, attention_mask, ending_mask], dim=1)
 
             batch_size = padded_tokens.shape[0]
-            kv_cache_batched = tuple(
-                tuple(tensor.expand(batch_size, *tensor.shape[1:]) for tensor in layer)
-                for layer in self.beginning_tokens_kv_cache
-            )
+            #kv_cache_batched = tuple(
+            #    tuple(tensor.expand(batch_size, *tensor.shape[1:]) for tensor in layer)
+            #    for layer in self.beginning_tokens_kv_cache
+            #)
 
             pad_length = padded_tokens.shape[1]
 
@@ -179,7 +179,7 @@ class CompletionDataset:
         self.beginning_tokens = beginning_tokens
         self.ending_tokens = ending_tokens
 
-        self.beginning_tokens_kv_cache = kv_cache = self.model.forward(beginning_tokens, return_dict=True).past_key_values
+        #self.beginning_tokens_kv_cache = kv_cache = self.model.forward(beginning_tokens, return_dict=True).past_key_values
 
     def tokenize_data(self, tokenizer_name = "input_ids"):
         data_df = self.data
