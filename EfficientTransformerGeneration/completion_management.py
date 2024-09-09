@@ -6,8 +6,7 @@ import pandas as pd
 import sys
 import os
 from tqdm import tqdm
-sys.path.append(os.path.abspath('.'))
-from gpu_estimations import generate_gpu_usage_estimator, measure_memory_usage, execute_and_measure_memory
+from .gpu_estimations import generate_gpu_usage_estimator, measure_memory_usage, execute_and_measure_memory
 #%%
 
 default_chat_template ="""{% for message in messages %}
