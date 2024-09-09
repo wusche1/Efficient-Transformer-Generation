@@ -3,6 +3,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, Cache
 import matplotlib.pyplot as plt
 import numpy as np
+from gpu_estimations import execute_and_measure_memory
 
 def measure_memory_usage(func):
     torch.cuda.empty_cache()
@@ -26,90 +27,24 @@ model_name = "Qwen/Qwen-1_8B-Chat"
 tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, pad_token="<|endoftext|>")
 model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True).to("cuda")
 #%%
-batch_size = 4
-sequence_length = 2  # Use the same length for both old and new tokens
-
-batched_old_tokens = torch.randint(0, tokenizer.vocab_size, (batch_size, sequence_length)).to("cuda")
-batched_new_tokens = torch.randint(0, tokenizer.vocab_size, (batch_size, sequence_length+2)).to("cuda")
-
-batched_old_kv = model.forward(batched_old_tokens, return_dict=True).past_key_values
-
-batched_generation = model.generate(batched_new_tokens, past_key_values=batched_old_kv, max_new_tokens=5)
-# 
-# repeated_old_kv = tuple(
-#    tuple(tensor.expand(batch_size, *tensor.shape[1:]) for tensor in layer)
-#    for layer in old_kv_cache
-#)
-
-#batched_repeat = model.generate(batched_new_tokens, past_key_values=batched_old_kv, max_new_tokens=5, num_return_sequences=batch_size)
-#%%
-
-total_tokens = 100
-gpu_mem_list = []
-input_lengths = list(range(20,80, 5))
-for input_length in input_lengths:
-    gpu_mem_list.append(measure_memory_usage(lambda: generate_text(model, tokenizer, input_length, total_tokens - input_length)))
-
-plt.plot(input_lengths, gpu_mem_list)
 
 
-#%%
-# Measure memory usage
-gen_length = 50
-input_lengths = list(range(1, 30))
-generation_memory = []
-forward_memory = []
-
-for length in input_lengths:
-    generation_memory.append(measure_memory_usage(lambda: generate_text(model, tokenizer, length, gen_length)))
-#    forward_memory.append(measure_memory_usage(lambda: forward_pass(model, tokenizer, length)))
+mem_util = []
+batch_sizes = []
+input_length = 10
+gen_tokens = 50
+for i in range(1, 500,10):
+    batch_size = i
+    batch_sizes.append(batch_size)
+    mem_util.append(execute_and_measure_memory(lambda: generate_text(model, tokenizer, input_length, gen_tokens, batch_size)))
 
 
 
 # %%
-
-
-def generate_gpu_usage_estimator(model, tokenizer,gen_tokens, base_input = 10, base_batch = 1, step_input = 10, step_batch = 5):
-    base_gpu = measure_memory_usage(lambda: generate_text(model, tokenizer, base_input, gen_tokens, base_batch))
-    step_up_input_gpu = measure_memory_usage(lambda: generate_text(model, tokenizer, base_input + step_input, gen_tokens, base_batch))
-    step_up_batch_gpu = measure_memory_usage(lambda: generate_text(model, tokenizer, base_input, gen_tokens, base_batch + step_batch))
-    input_gpu_slope = (step_up_input_gpu - base_gpu) / step_input
-    batch_gpu_slope = (step_up_batch_gpu - base_gpu) / step_batch
-    y_intercept = base_gpu - input_gpu_slope * base_input - batch_gpu_slope * base_batch
-    def estimate_memory_usage(input_length, batch_size = 1):
-        return input_gpu_slope * input_length + batch_gpu_slope * batch_size + y_intercept
-    
-    return estimate_memory_usage
-    
-estimate_memory_usage = generate_gpu_usage_estimator(model, tokenizer, gen_length)
-# Usage example
-predicted_memory =[estimate_memory_usage(input_length) for input_length in input_lengths]
-
-print(f"Predicted memory usage: {predicted_memory}")
-print(f"Measured memory usage: {generation_memory}")
-
-
+plt.plot(batch_sizes[:-1], mem_util)
 # %%
-# Plotting
-plt.figure(figsize=(12, 6))
-plt.plot(input_lengths, generation_memory, label='Text Generation')
-plt.plot(input_lengths, predicted_memory, label='Predicted Generation')
-#plt.plot(seq_lengths, forward_memory, label='Forward Pass')
-plt.xlabel('Sequence Length')
-plt.ylabel('GPU Memory Usage (MB)')
-plt.title('GPU Memory Usage: Text Generation vs Forward Pass')
-plt.legend()
-plt.grid(True)
-plt.show()
-
-
+mem_util[-1]
 # %%
-batch_sizes = [1,2,3,4,5,6,7,8,9,10]
-batch_memory_usage = [ measure_memory_usage(lambda: generate_text(model, tokenizer, 10, gen_length, batch_size)) for batch_size in batch_sizes]
+#print out reserved memory
+print(torch.cuda.memory_reserved()/torch.cuda.get_device_properties(0).total_memory)
 # %%
-predicted_batch_memory =[estimate_memory_usage(10, batch_size) for batch_size in batch_sizes]
-plt.plot(batch_sizes, batch_memory_usage)
-plt.plot(batch_sizes, predicted_batch_memory)
-# %%
-
-

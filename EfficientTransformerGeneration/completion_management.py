@@ -22,6 +22,8 @@ class CompletionDataset:
         self.tokenizer = tokenizer
         if tokenizer.chat_template is None:
             tokenizer.chat_template = default_chat_template
+        if type(data) is list:
+            data = pd.DataFrame(data)
         self.data = data
         if completion_name is None:
             model_name = model.config._name_or_path if hasattr(model.config, "_name_or_path") else "model"
@@ -34,9 +36,24 @@ class CompletionDataset:
             memory_mb = torch.cuda.get_device_properties(device).total_memory / 1024**2 - torch.cuda.memory_allocated(device) / 1024**2
         self.memory_mb = memory_mb
         self.system_prompt = system_prompt
+
+    def __call__(self, generation_kwargs = {}):
+        #heck wether data is already tokenized
+        if self.data.get("input_ids") is None:
+            self.tokenize_data()
+        
+        #check wether the template tokens are already generated
+        if not hasattr(self, "beginning_tokens"):
+            self.get_template_tokens()
+        
+        #complete all the data
+        self.complete_all(generation_kwargs = generation_kwargs)
+        return self.data
     
-    def complete_all(self, verbose = False):
+    def complete_all(self, verbose = False, generation_kwargs = {}):
         sorted_indeces = self.data.sort_values("input_ids_length").index
+        #reverse the indeces
+        sorted_indeces = sorted_indeces[::-1]
         print(sorted_indeces)
         indeces = sorted_indeces.tolist()
         _, get_batchsize = generate_gpu_usage_estimator(self.model, self.tokenizer, self.completion_length)
@@ -47,8 +64,9 @@ class CompletionDataset:
         while len(indeces) > 0:
             current_batch_size = max(known_ok_batch_size, current_batch_size)
             current_indeces = indeces[:current_batch_size]
-
-            return_value, mem_utilization = execute_and_measure_memory(self.complete_indeces, current_indeces)
+            if verbose:
+                print(f"Creating completions of length{self.data.loc[current_indeces, 'input_ids_length'].max()}")
+            return_value, mem_utilization = execute_and_measure_memory(self.complete_indeces, current_indeces, generation_kwargs = generation_kwargs)
             if return_value:
                 if verbose:
                     print(f"Batch size {current_batch_size} OK")
@@ -59,12 +77,12 @@ class CompletionDataset:
                 #drop the used indeces from the indeces list
                 indeces = indeces[current_batch_size:]
                 if len(indeces) > 0:
-                    if mem_utilization < 0.9:
+                    if mem_utilization < 0.8:
                         if verbose:
                             print(f"Batch size {current_batch_size} too small")
-                            enlarge_factor = 1/mem_utilization
-                            enlarge_factor = (enlarge_factor-1)/2 + 1
-                            enlarge_factor = min(enlarge_factor, 1.25)
+                        enlarge_factor = 1/mem_utilization
+                        enlarge_factor = (enlarge_factor-1)/4 + 1
+                        #enlarge_factor = min(enlarge_factor, 1.25)
                         current_batch_size = max(known_ok_batch_size, int(current_batch_size*enlarge_factor))
                     else:
                         current_batch_size = get_batchsize(indeces[0], self.memory_mb)
@@ -80,7 +98,7 @@ class CompletionDataset:
 
 
 
-    def complete_indeces(self, indeces):
+    def complete_indeces(self, indeces, generation_kwargs = {}):
         subset = self.data.iloc[indeces]
 
         tokens = subset["input_ids"].tolist()
@@ -123,6 +141,7 @@ class CompletionDataset:
                     attention_mask=attention_mask,
                     max_new_tokens=self.completion_length,
                     do_sample=True,
+                    **generation_kwargs,
                     #past_key_values=kv_cache_batched
                 )
 
@@ -161,7 +180,7 @@ class CompletionDataset:
         self.beginning_tokens = beginning_tokens
         self.ending_tokens = ending_tokens
 
-        self.beginning_tokens_kv_cache = kv_cache = model.forward(beginning_tokens, return_dict=True).past_key_values
+        self.beginning_tokens_kv_cache = kv_cache = self.model.forward(beginning_tokens, return_dict=True).past_key_values
 
     def tokenize_data(self, tokenizer_name = "input_ids"):
         data_df = self.data
@@ -180,6 +199,8 @@ class CompletionDataset:
         encoded_length = list(map(len, encoded["input_ids"]))
         data_df[tokenizer_name] = encoded["input_ids"]
         data_df[tokenizer_name + "_length"] = encoded_length
+    
+    
 
 
 #%%
@@ -194,63 +215,21 @@ if __name__ == "__main__":
 #%%
 if __name__ == "__main__":
     test_dataset = [{
-        "prompt": f"What is 6 plus {i}",
+        "prompt": f"What is 6 plus {i*i}?",
     } for i in range(1000)]
 
     data_df = pd.DataFrame(test_dataset)
 
     completion_dataset = CompletionDataset(model, tokenizer, data_df)
-# %%
 
-completion_dataset.tokenize_data()
-# %%
-completion_dataset.get_template_tokens()
-# %%
-completion_dataset.complete_all(verbose=True)
-# %%
-completion_dataset.data
-# %%
 
-# %%
-import torch
-import gc
+    completion_dataset.tokenize_data()
+    completion_dataset.get_template_tokens()
 
-def measure_gpu_memory(func, *args, **kwargs):
-    if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is not available. This function requires a GPU.")
+    completion_dataset.complete_all(verbose=True)
 
-    torch.cuda.empty_cache()
-    gc.collect()
+    completion_dataset.data
 
-    total_memory = torch.cuda.get_device_properties(0).total_memory
-    initial_used_memory = torch.cuda.memory_allocated()
-    
-    min_free_memory = total_memory - initial_used_memory
-    max_used_memory = initial_used_memory
 
-    def check_memory():
-        nonlocal min_free_memory, max_used_memory
-        current_used_memory = torch.cuda.memory_allocated()
-        current_free_memory = total_memory - current_used_memory
-        min_free_memory = min(min_free_memory, current_free_memory)
-        max_used_memory = max(max_used_memory, current_used_memory)
-
-    try:
-        result = func(*args, **kwargs)
-    finally:
-        check_memory()
-
-    return min_free_memory, max_used_memory, result
-
-# Example usage:
-def gpu_intensive_function():
-    x = torch.randn(10000, 10000, device='cuda')
-    y = torch.matmul(x, x.t())
-    return y.sum().item()
-
-min_free_memory, max_used_memory, result = measure_gpu_memory(gpu_intensive_function)
-
-print(f"Minimum free GPU memory during execution: {min_free_memory / 1024**2:.2f} MB")
-print(f"Maximum used GPU memory during execution: {max_used_memory / 1024**2:.2f} MB")
-print(f"Function result: {result}")
+#
 # %%
