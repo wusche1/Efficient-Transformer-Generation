@@ -5,11 +5,11 @@ setup(
     version="0.1.0",
     packages=find_packages(),
     install_requires=[
-        "torch"
-        "transformers"
-        "tiktoken" 
-        "pandas"
-        "tqdm"
+        "torch",
+        "transformers",
+        "tiktoken" ,
+        "pandas",
+        "tqdm",
     ],
     author="Julian Schulz",
     author_email="your.email@example.com",
