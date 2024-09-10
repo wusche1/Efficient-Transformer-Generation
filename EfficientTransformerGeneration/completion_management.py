@@ -83,7 +83,7 @@ class CompletionDataset:
                 return self.complete_indeces(current_indeces, generation_kwargs = generation_kwargs)
             
             return_value, memory_used = measure_memory_usage(func_wrapper, return_value = True)
-            print(memory_used)
+            #print(memory_used)
             input_pair = (input_length, current_batch_size)
             if return_value:
                 if verbose:
