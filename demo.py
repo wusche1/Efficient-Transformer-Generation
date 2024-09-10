@@ -2,7 +2,9 @@
 import sys
 from transformers import AutoTokenizer, AutoModelForCausalLM
 sys.path.append('./EfficientTransformerGeneration')
-from completion_management import CompletionDataset
+from EfficientTransformerGeneration import CompletionDataset, generate_gpu_usage_estimator
+import torch
+device = "cuda" if torch.cuda.is_available() else "cpu"
 # %%
 text_1 = "Hello, how are you?"
 text_2 = "Given, that the sky is blue, what is the color of the sky?"
@@ -21,13 +23,30 @@ for i in range(300):
     dataset.append({"prompt": text_6})
 
 # %%
-model_name = "Qwen/Qwen-1_8B-Chat"
-tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, pad_token="<|endoftext|>")
-model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True).to("cuda")
+model = AutoModelForCausalLM.from_pretrained(
+        "meta-llama/Meta-Llama-3-8B-Instruct"
+    ).to(device)
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct")
+tokenizer.pad_token = tokenizer.eos_token
 
 #%%
 c_d = CompletionDataset(model, tokenizer, dataset)
 results = c_d()
 # %%
-results
+c_d.tokenize_data()
+# %%
+c_d.get_template_tokens()
+# %%
+c_d.complete_all(verbose=True)
+# %%
+completion_length = 100
+_, get_batchsize = generate_gpu_usage_estimator(model, tokenizer, completion_length)
+# %%
+free_memory = torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_reserved(0)
+get_batchsize(1,free_memory/ 1024 / 1024)
+# %%
+free_memory
+# %%
+#empty cache
+torch.cuda.empty_cache()
 # %%

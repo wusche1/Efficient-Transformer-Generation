@@ -1,0 +1,9 @@
+setup.py
+EfficientTransformerGeneration/__init__.py
+EfficientTransformerGeneration/completion_management.py
+EfficientTransformerGeneration/gpu_estimations.py
+EfficientTransformerGeneration.egg-info/PKG-INFO
+EfficientTransformerGeneration.egg-info/SOURCES.txt
+EfficientTransformerGeneration.egg-info/dependency_links.txt
+EfficientTransformerGeneration.egg-info/requires.txt
+EfficientTransformerGeneration.egg-info/top_level.txt
