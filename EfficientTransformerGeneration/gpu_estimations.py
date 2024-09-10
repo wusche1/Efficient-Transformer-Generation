@@ -1,7 +1,9 @@
 #%%
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
-
+from math import isclose
+from sklearn.linear_model import LinearRegression
+import numpy as np
 import gc
 
 def measure_memory_usage(func, return_value = None):
@@ -62,136 +64,98 @@ def generate_text(model, tokenizer, input_length, gen_length, batch_size = 1):
         text = model.generate(input_ids, max_new_tokens = gen_length, min_new_tokens = gen_length, do_sample=True)
         #print(text.shape)
 
-def generate_gpu_usage_estimator(model, tokenizer,gen_tokens, base_input = 10, base_batch = 1, step_input = 10, step_batch = 5):
-    base_gpu = measure_memory_usage(lambda: generate_text(model, tokenizer, base_input, gen_tokens, base_batch))
-    step_up_input_gpu = measure_memory_usage(lambda: generate_text(model, tokenizer, base_input + step_input, gen_tokens, base_batch))
-    step_up_batch_gpu = measure_memory_usage(lambda: generate_text(model, tokenizer, base_input, gen_tokens, base_batch + step_batch))
-    step_up_batch_input_gpu = measure_memory_usage(lambda: generate_text(model, tokenizer, base_input + step_input, gen_tokens, base_batch + step_batch))
-    batch_slope_base = (step_up_batch_gpu - base_gpu) / step_batch
-    batch_slope_at_high_input = (step_up_batch_input_gpu - step_up_input_gpu) / step_batch
-    batch_slope_slope = (batch_slope_at_high_input - batch_slope_base) / step_input
+def generate_gpu_usage_estimator(model, tokenizer, gen_tokens, base_input=50, base_batch=64, step_input=20, step_batch=64):
+    def memory_function(input_length, batch_size):
+        return measure_memory_usage(lambda: generate_text(model, tokenizer, input_length, gen_tokens, batch_size))
 
-    #print(f"Base GPU: {base_gpu}")
-    #print(f"Step up input GPU: {step_up_input_gpu}")
-    input_slope = (step_up_input_gpu - base_gpu) / step_input
-    #print(f"Input slope: {input_slope}")
+    input_pairs = [(base_input, base_batch), (base_input + step_input, base_batch), 
+                   (base_input, base_batch + step_batch), (base_input + step_input, base_batch + step_batch)]
+    memory_values = [memory_function(*pair) for pair in input_pairs]
 
-    y_intercept = base_gpu - input_slope * base_input - batch_slope_base * (base_batch-1)
-    def estimate_memory_usage(input_length, batch_size = 1):
-        batch_slope = batch_slope_base + (input_length - base_input)*batch_slope_slope
-        return input_slope * input_length + batch_slope * (batch_size-1) + y_intercept
-    
-    def get_batchsize(input_length, memory, safety_factor = .9):
-        batch_slope = batch_slope_base + (input_length - base_input)*batch_slope_slope
-        ideal_batch_size = (memory - y_intercept - input_slope * input_length) / batch_slope + 1
-        return int(ideal_batch_size * safety_factor)
-    
-    #assert, that under the 4 conditions where we know the memory usage, the function is correct
-    assert base_gpu == estimate_memory_usage(base_input, base_batch), f"Base GPU: {base_gpu}, Estimated: {estimate_memory_usage(base_input, base_batch)}"
-    assert step_up_input_gpu == estimate_memory_usage(base_input + step_input, base_batch), f"Step up input GPU: {step_up_input_gpu}, Estimated: {estimate_memory_usage(base_input + step_input, base_batch)}"
-    assert step_up_batch_gpu == estimate_memory_usage(base_input, base_batch + step_batch), f"Step up batch GPU: {step_up_batch_gpu}, Estimated: {estimate_memory_usage(base_input, base_batch + step_batch)}"
-    assert step_up_batch_input_gpu == estimate_memory_usage(base_input + step_input, base_batch + step_batch), f"Step up batch input GPU: {step_up_batch_input_gpu}, Estimated: {estimate_memory_usage(base_input + step_input, base_batch + step_batch)}"
-    return estimate_memory_usage, get_batchsize
+    # Prepare data for linear regression
+    X = np.array([[1, pair[0], pair[1], pair[0] * pair[1]] for pair in input_pairs])
+    y = np.array(memory_values)
+
+    # Solve for coefficients using numpy's least squares solver
+    coeffs, residuals, rank, s = np.linalg.lstsq(X, y, rcond=None)
+
+    # Extract coefficients
+    d, a, b, c = coeffs
+
+    # Create the estimator function
+    def estimate_memory(input_length, batch_size):
+        return max(0, d + a * input_length + b * batch_size + c * input_length * batch_size)
+
+    def max_batch_size(input_length, memory, gpu_batch_size=64):
+        return (int((memory - d - a * input_length) / (b + c * input_length))//gpu_batch_size)*gpu_batch_size
+
+    # Print results
+    print(f"Memory estimation function:")
+    print(f"M(i, b) = {d:.4f} + {a:.4f}*i + {b:.4f}*b + {c:.4f}*i*b")
+
+    return estimate_memory
+
 #%%
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
     import numpy as np
-    # Load model and tokenizer
-    model_name = "Qwen/Qwen-1_8B-Chat"
-    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, pad_token="<|endoftext|>")
-    model = AutoModelForCausalLM.from_pretrained(model_name, trust_remote_code=True).to("cuda")
+    import matplotlib.pyplot as plt
+    from tqdm import tqdm
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = AutoModelForCausalLM.from_pretrained(
+        "meta-llama/Meta-Llama-3-8B-Instruct"
+    ).to(device)
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct")
+    tokenizer.pad_token = tokenizer.eos_token
 #%%
 if __name__ == "__main__":
 
     # Measure memory usage
     gen_length = 50
-    input_lengths = list(range(1, 30, 5))
-    batch_sizes = [1, 2, 4, 8, 16]
-
-
-    input_memory = [ measure_memory_usage(lambda: generate_text(model, tokenizer, length, gen_length)) for length in input_lengths]
-
-    batch_momory = [ measure_memory_usage(lambda: generate_text(model, tokenizer, input_lengths[0], gen_length, batch_size)) for batch_size in batch_sizes]
-#%%
-if __name__ == "__main__":
     estimate_memory_usage, get_batchsize = generate_gpu_usage_estimator(model, tokenizer, gen_length)
-
-    predicted_batch_memory = [estimate_memory_usage(input_lengths[0], batch_size) for batch_size in batch_sizes]
-    predicted_input_memory = [estimate_memory_usage(length) for length in input_lengths]
-
-    plt.plot(input_lengths, input_memory, label = "Measured input memory")
-    plt.plot(input_lengths, predicted_input_memory, label = "Predicted input memory")
-    plt.xlabel("Input length")
-    plt.ylabel("Memory usage (MB)")
-    plt.legend()
-    plt.show()
-
-    plt.plot(batch_sizes, batch_momory, label = "Measured batch memory")
-    plt.plot(batch_sizes, predicted_batch_memory, label = "Predicted batch memory")
-    plt.xlabel("Batch size")
-    plt.ylabel("Memory usage (MB)")
-    plt.legend()
-    plt.show()
-
-#%%
-if __name__ == "__main__":
-    memory_list_list = []
-    for input_length in input_lengths:
-        memory_list = []
-        for batch_size in batch_sizes:
-            memory = measure_memory_usage(lambda: generate_text(model, tokenizer, input_length, gen_length, batch_size))
-            memory_list.append(memory)
-        memory_list_list.append(memory_list)
-#%%
-if __name__ == "__main__":
-    colors = plt.cm.viridis(np.linspace(0, 1, len(input_lengths)))
-    plt.figure(figsize=(12, 6))
-    for i, input_length in enumerate(input_lengths):
-        print(batch_sizes, memory_list_list[i])
-        plt.plot(batch_sizes, memory_list_list[i], label=f"Input length: {input_length}", c = colors[i])
-        #now plot a prediciton in the same colour as dotted line
-        plt.plot(batch_sizes, [estimate_memory_usage(input_length, batch_size) for batch_size in batch_sizes], linestyle = "--", c = colors[i])
-    plt.xlabel("Batch size")
-    plt.ylabel("Memory usage (MB)")
-    plt.legend()
-    plt.show()
-#%%
-if __name__ == "__main__":
-    slopes = []
-    for i in range(len(input_lengths)):
-        slopes.append((memory_list_list[i][0]-memory_list_list[i][-1])/(batch_sizes[0]-batch_sizes[-1]))
     
-    plt.plot(input_lengths, slopes)
+#%%
+if __name__ == "__main__":
+    input_lengths = np.arange(50, 120+1, 20)
+    batch_sizes = np.arange(64, 256+1, 64)
+    memory = np.zeros((len(input_lengths), len(batch_sizes)))
+    predicted_memory = np.zeros((len(input_lengths), len(batch_sizes)))
+    pbar = tqdm(total=len(input_lengths) * len(batch_sizes))
+    for i, input_length in enumerate(input_lengths):
+        for j, batch_size in enumerate(batch_sizes):
+            pbar.update(1)
+            #memory[i, j] = measure_memory_usage(lambda: generate_text(model, tokenizer, input_length, gen_length, batch_size))
+            predicted_memory[i, j] = estimate_memory_usage(input_length, batch_size)
+            print(f"Input length: {input_length}, Batch size: {batch_size}, Measured memory: {memory[i, j]:.2f}, Predicted memory: {predicted_memory[i, j]:.2f}")
+    
 # %%
 if __name__ == "__main__":
-    #test get_batchsize
-    input_lengths = [10, 20, 30, 40, 50]
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    free_mb = torch.cuda.get_device_properties(0).total_memory / 1024**2 - torch.cuda.memory_allocated(0) / 1024**2 if torch.cuda.is_available() else 0
-    batch_sizes = [get_batchsize(input_length, free_mb, safety_factor=0.99) for input_length in input_lengths]
+    # save the memory in a csv file
+    import pandas as pd
+    df = pd.DataFrame(memory, columns=batch_sizes, index=input_lengths)
+    df.to_csv("memory.csv")
+# %%
+if __name__ == "__main__":
+    #load the memory from the csv file
+    import pandas as pd
+    memory = pd.read_csv("memory.csv", index_col=0).values
+# %%
+if __name__ == "__main__":
 
-    results = []
-    for input_length, batch_size in zip(input_lengths, batch_sizes):
-        try:
-            torch.cuda.reset_peak_memory_stats()
-            generate_text(model, tokenizer, input_length, gen_length, batch_size)
-            max_memory = torch.cuda.max_memory_allocated() / 1024**2
-            free_left = free_mb - max_memory
-            percentage_used = max_memory / free_mb
-            results.append((input_length, batch_size, "success", free_left, percentage_used))
-        except RuntimeError as e:
-            if "out of memory" in str(e):
-                max_memory = torch.cuda.max_memory_allocated() / 1024**2
-                free_left = free_mb - max_memory
-                percentage_used = max_memory / free_mb
-                results.append((input_length, batch_size, "fail", free_left, percentage_used))
-            else:
-                raise e
-        
-        print(f"Input length: {input_length}, Batch size: {batch_size}, Result: {results[-1][2]}, Free memory left: {results[-1][3]:.2f} MB, Percentage used: {results[-1][4]:.2f}")
-
-    # Print summary
-    print("\nSummary:")
-    for result in results:
-        print(f"Input length: {result[0]}, Batch size: {result[1]}, Status: {result[2]}, Free memory left: {result[3]:.2f} MB")
+    non_zero_indices = memory > 0
+    for i, input_length in enumerate(input_lengths):
+        plt.plot(batch_sizes[non_zero_indices[i]], memory[i, non_zero_indices[i]], label=f"Input length: {input_length}")
+        plt.plot(batch_sizes[non_zero_indices[i]], predicted_memory[i, non_zero_indices[i]], linestyle="--", color="black")
+    
+    plt.xlabel("Batch size")
+    plt.ylabel("Memory utilization (MB)")
+    plt.legend()
+# %%
+if __name__ == "__main__":
+    for i, bs in enumerate(batch_sizes):
+        plt.plot(input_lengths, memory[:, i], label=f"Batch size: {bs}")
+        plt.plot(input_lengths, predicted_memory[:, i], linestyle="--", color="black")
+    plt.xlabel("Input length")
+    plt.ylabel("Memory utilization (MB)")
+    plt.legend()
+    
 # %%

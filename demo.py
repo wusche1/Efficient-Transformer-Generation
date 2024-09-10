@@ -31,7 +31,7 @@ tokenizer.pad_token = tokenizer.eos_token
 
 #%%
 c_d = CompletionDataset(model, tokenizer, dataset)
-results = c_d()
+#results = c_d()
 # %%
 c_d.tokenize_data()
 # %%
@@ -39,14 +39,7 @@ c_d.get_template_tokens()
 # %%
 c_d.complete_all(verbose=True)
 # %%
-completion_length = 100
-_, get_batchsize = generate_gpu_usage_estimator(model, tokenizer, completion_length)
-# %%
-free_memory = torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_reserved(0)
-get_batchsize(1,free_memory/ 1024 / 1024)
-# %%
-free_memory
-# %%
-#empty cache
-torch.cuda.empty_cache()
+c_d.data
+
+
 # %%
