@@ -86,7 +86,7 @@ class CompletionDataset:
             if return_value:
                 if verbose:
                     print(f"Batch size {current_batch_size} OK")
-                    print(f"Memory utilization: {100*mem_utilization:.2f} %")
+                    print(f"Memory utilization: {100*memory_used/self.memory_mb:.2f}%")
                 #update the progress bar
                 pbar.update(current_batch_size)
                 
