@@ -93,7 +93,7 @@ def generate_gpu_usage_estimator_from_input_pairs_and_memory_values(input_pairs,
         return max(0, d + a * input_length + b * batch_size + c * input_length * batch_size)
 
     def max_batch_size(input_length, memory, gpu_batch_size=64, safety_factor=0.8):
-        return (int(((memory - d - a * input_length) / (b + c * input_length))//gpu_batch_size)*safety_factor)*gpu_batch_size
+        return int(int((((memory - d - a * input_length) / (b + c * input_length))//gpu_batch_size)*safety_factor)*gpu_batch_size)
 
     # Print results
     if verbose:

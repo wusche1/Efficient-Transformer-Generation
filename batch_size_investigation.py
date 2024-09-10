@@ -14,7 +14,7 @@ model = AutoModelForCausalLM.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct")
 tokenizer.pad_token = tokenizer.eos_token
 # %%
-batch_size = range(60,70)
+batch_size = [64, 128, 256]
 times = []
 vocab_size = 50256
 n_input_tokens = 100
@@ -27,6 +27,25 @@ for bs in batch_size:
     print(generated.shape)
     end = time()
     times.append(end-start)
+#%%
+import matplotlib.pyplot as plt
+plt.plot(batch_size, times)
+plt.xlabel("Batch size")
+plt.ylabel("Time (s)")
+plt.show()
+created_tokens = [n_new_tokens * bs for bs in batch_size]
+plt.figure()
+plt.plot(batch_size, created_tokens)
+plt.xlabel("Batch size")
+plt.ylabel("Number of tokens created")
+plt.show()
+tokens_per_second = [n/t for n, t in zip(created_tokens, times)]
+plt.figure()
+plt.plot(batch_size, tokens_per_second)
+plt.xlabel("Batch size")
+plt.ylabel("Tokens per second")
+plt.show()
+
 
 
 # %%

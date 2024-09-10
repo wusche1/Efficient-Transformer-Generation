@@ -30,16 +30,10 @@ tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct")
 tokenizer.pad_token = tokenizer.eos_token
 
 #%%
-c_d = CompletionDataset(model, tokenizer, dataset)
+c_d = CompletionDataset(model, tokenizer, dataset, memory_mb = 41920)
 #results = c_d()
 # %%
-c_d.tokenize_data()
-# %%
-c_d.get_template_tokens()
-# %%
-c_d.complete_all(verbose=True)
-# %%
-c_d.data
+c_d()
 
 
 # %%
