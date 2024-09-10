@@ -88,3 +88,16 @@ print(f"Intercept: {reg.intercept_}")
 print(f"R-squared score: {reg.score(X, y)}")
 
 plt.show()
+# %%
+for i, bs in enumerate(batch_sizes):
+    plt.plot(input_lengths, memory[:, i], label=f"Batch size: {bs}")
+plt.xlabel("Input length")
+plt.ylabel("Memory usage (MB)")
+plt.legend()
+# %%
+for i, il in enumerate(input_lengths):
+    plt.plot(batch_sizes, memory[i], label=f"Input length: {il}")
+plt.xlabel("Batch size")
+plt.ylabel("Memory usage (MB)")
+plt.legend()
+# %%

@@ -65,13 +65,19 @@ def generate_text(model, tokenizer, input_length, gen_length, batch_size = 1):
         #print(text.shape)
 
 def generate_gpu_usage_estimator(model, tokenizer, gen_tokens, base_input=50, base_batch=64, step_input=20, step_batch=64):
+    input_pairs, memory_values = generate_input_pairs_and_memory_values(model, tokenizer, gen_tokens, base_input, base_batch, step_input, step_batch)
+    return generate_gpu_usage_estimator_from_input_pairs_and_memory_values(input_pairs, memory_values)
+
+def generate_input_pairs_and_memory_values(model, tokenizer, gen_tokens, base_input=50, base_batch=64, step_input=20, step_batch=64):
     def memory_function(input_length, batch_size):
         return measure_memory_usage(lambda: generate_text(model, tokenizer, input_length, gen_tokens, batch_size))
 
     input_pairs = [(base_input, base_batch), (base_input + step_input, base_batch), 
                    (base_input, base_batch + step_batch), (base_input + step_input, base_batch + step_batch)]
     memory_values = [memory_function(*pair) for pair in input_pairs]
+    return input_pairs, memory_values
 
+def generate_gpu_usage_estimator_from_input_pairs_and_memory_values(input_pairs, memory_values, verbose=False):
     # Prepare data for linear regression
     X = np.array([[1, pair[0], pair[1], pair[0] * pair[1]] for pair in input_pairs])
     y = np.array(memory_values)
@@ -86,14 +92,18 @@ def generate_gpu_usage_estimator(model, tokenizer, gen_tokens, base_input=50, ba
     def estimate_memory(input_length, batch_size):
         return max(0, d + a * input_length + b * batch_size + c * input_length * batch_size)
 
-    def max_batch_size(input_length, memory, gpu_batch_size=64):
-        return (int((memory - d - a * input_length) / (b + c * input_length))//gpu_batch_size)*gpu_batch_size
+    def max_batch_size(input_length, memory, gpu_batch_size=64, safety_factor=0.8):
+        return (int(((memory - d - a * input_length) / (b + c * input_length))//gpu_batch_size)*safety_factor)*gpu_batch_size
 
     # Print results
-    print(f"Memory estimation function:")
-    print(f"M(i, b) = {d:.4f} + {a:.4f}*i + {b:.4f}*b + {c:.4f}*i*b")
+    if verbose:
+        print(f"Memory estimation function:")
+        print(f"M(i, b) = {d:.4f} + {a:.4f}*i + {b:.4f}*b + {c:.4f}*i*b")
 
-    return estimate_memory
+    return estimate_memory, max_batch_size
+
+
+
 
 #%%
 if __name__ == "__main__":
@@ -129,12 +139,6 @@ if __name__ == "__main__":
     
 # %%
 if __name__ == "__main__":
-    # save the memory in a csv file
-    import pandas as pd
-    df = pd.DataFrame(memory, columns=batch_sizes, index=input_lengths)
-    df.to_csv("memory.csv")
-# %%
-if __name__ == "__main__":
     #load the memory from the csv file
     import pandas as pd
     memory = pd.read_csv("memory.csv", index_col=0).values
@@ -157,5 +161,17 @@ if __name__ == "__main__":
     plt.xlabel("Input length")
     plt.ylabel("Memory utilization (MB)")
     plt.legend()
-    
 # %%
+if __name__ == "__main__":
+    input_pairs = [(inpt, bs) for inpt in input_lengths for bs in batch_sizes]
+    memory_values = memory.ravel()
+    estimate_memory, get_batchsize = generate_gpu_usage_estimator_from_input_pairs_and_memory_values(input_pairs, memory_values, verbose=True)
+# %%
+    extreme_batch_sizes = np.array([6,7]) * 64
+    input_len = 100
+    exptreme_memory = np.zeros_like(extreme_batch_sizes)
+    predicted_extreme_memory = np.zeros_like(extreme_batch_sizes)
+    for i, bs in enumerate(extreme_batch_sizes):
+        exptreme_memory[i] = measure_memory_usage(lambda: generate_text(model, tokenizer, input_len, gen_length, bs))
+        predicted_extreme_memory[i] = estimate_memory_usage(input_len, bs)
+
