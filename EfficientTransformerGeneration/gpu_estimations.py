@@ -17,8 +17,9 @@ def measure_memory_usage(func: Callable[[], Any], return_value: bool = False) ->
 
 def generate_text(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, input_length: int, gen_length: int, batch_size: int = 1) -> None:
     input_ids: Tensor = torch.randint(0, tokenizer.vocab_size, (batch_size, input_length), device=model.device)
+    attention_mask: Tensor = torch.ones_like(input_ids)
     with torch.no_grad():
-        model.generate(input_ids, max_new_tokens=gen_length, min_new_tokens=gen_length, do_sample=True)
+        model.generate(input_ids, max_new_tokens=gen_length, min_new_tokens=gen_length, do_sample=True, attention_mask=attention_mask, pad_token_id=tokenizer.eos_token_id)
 
 def generate_input_pairs_and_memory_values(
     model: AutoModelForCausalLM, 

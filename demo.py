@@ -33,6 +33,12 @@ tokenizer.pad_token = tokenizer.eos_token
 c_d = CompletionDataset(model, tokenizer, dataset)
 #results = c_d()
 # %%
+
+print(c_d.gpu_dataset)
+
+
+
+#%%
 c_d.tokenize_data()
 c_d.get_template_tokens()
 c_d.verbose = True
@@ -42,4 +48,10 @@ c_d.complete_all()
 
 # %%
 c_d.data
+# %%
+gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+# %%
+gpu_name
+# %%
+int(c_d.gpu_dataset["50"])
 # %%

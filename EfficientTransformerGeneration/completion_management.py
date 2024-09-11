@@ -4,7 +4,25 @@ import torch
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from pathlib import Path
+
+import json
 from transformers import PreTrainedModel, PreTrainedTokenizer
+
+def load_gpu_dataset():
+    # Get the directory of the current script
+    current_dir = Path(__file__).parent
+    
+    # Construct the path to the JSON file
+    json_path = current_dir / "gpu_memory_dataset.json"
+    
+    # Check if the file exists
+    if not json_path.is_file():
+        raise FileNotFoundError(f"GPU memory dataset not found at {json_path}")
+    
+    # Load and return the JSON data
+    with open(json_path, "r") as file:
+        return json.load(file)
 
 from .gpu_estimations import (
     generate_gpu_usage_estimator,
@@ -28,8 +46,7 @@ class CompletionDataset:
         tokenizer: PreTrainedTokenizer,
         data: pd.DataFrame,
         completion_name: Optional[str] = None,
-        completion_length: int = 50,
-        memory_mb: Optional[float] = None,
+        gen_length: int = 50,
         system_prompt: str = "You are a helpful assistant.",
         gpu_batch_size: int = 64,
         verbose: bool = False,
@@ -41,14 +58,30 @@ class CompletionDataset:
             tokenizer.chat_template = default_chat_template
         self.data = data if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
         self.completion_name = completion_name or f"{model.config._name_or_path}_completions"
-        self.completion_length = completion_length
+        self.gen_length = gen_length
         self.device = model.device
-        self.memory_mb = memory_mb or torch.cuda.get_device_properties(self.device).total_memory / 1024**2
         self.system_prompt = system_prompt
         self.input_pairs: Optional[List[Tuple[int, int]]] = None
         self.memory_values: Optional[List[float]] = None
         self.failed_input_pairs: List[Tuple[int, int]] = []
         self.verbose = verbose
+        self.memory_mb = torch.cuda.get_device_properties(0).total_memory / 1024**2
+
+
+        model_name = model.config._name_or_path
+        gpu_name = torch.cuda.get_device_name()
+
+        gpu_dataset = load_gpu_dataset()
+        setting_found = False
+        for setting in gpu_dataset:
+            if setting["model_name"] == model_name and setting["gpu_name"] == gpu_name and setting["gpu_batch_size"] == gpu_batch_size:
+                setting_found = True
+                self.gpu_dataset = setting["dataset"]
+                break   
+        
+        if not setting_found:
+            raise ValueError("GPU dataset not found for this model and GPU combination")
+        
 
     def __call__(self, generation_kwargs: Dict[str, Any] = {}) -> pd.DataFrame:
         if "input_ids" not in self.data.columns:
@@ -64,67 +97,44 @@ class CompletionDataset:
         sorted_indices = self.data.sort_values("input_ids_length", ascending=False).index
         indices = sorted_indices.tolist()
 
-        self.input_pairs, self.memory_values = generate_input_pairs_and_memory_values(
-            self.model, self.tokenizer, self.completion_length,
-            base_input=50, base_batch=self.gpu_batch_size,
-            step_input=20, step_batch=self.gpu_batch_size
-        )
-
-        _, get_batchsize = generate_gpu_usage_estimator_from_input_pairs_and_memory_values(
-            self.input_pairs, self.memory_values, verbose=self.verbose
-        )
 
         with tqdm(total=len(indices)) as pbar:
-            current_batch_size = get_batchsize(self.data.loc[indices[0], "input_ids_length"], self.memory_mb, gpu_batch_size=self.gpu_batch_size)
+            input_length = self.data.loc[indices[0], "input_ids_length"]
+            current_batch_size = self.get_batchsize(input_length)
             while indices:
-                input_length = self.data.loc[indices[0], "input_ids_length"]
-                input_length, current_batch_size = self.check_input_pair_against_constraints(input_length, current_batch_size)
                 current_indices = indices[:current_batch_size]
+                if self.verbose:
+                    print(f"Batch size: {current_batch_size}")
+                    print(f"Current input length: {input_length}")
 
                 def func_wrapper():
                     return self.complete_indices(current_indices, generation_kwargs=generation_kwargs)
                 
                 success, memory_used = measure_memory_usage(func_wrapper, return_value=True)
-                input_pair = (input_length, current_batch_size)
-
                 if success:
                     if self.verbose:
                         print(f"Batch size {current_batch_size} OK")
                         print(f"Memory utilization: {100*memory_used/self.memory_mb:.2f}%")
                     pbar.update(current_batch_size)
 
-                    if input_pair not in self.input_pairs:
-                        self.input_pairs.append(input_pair)
-                        self.memory_values.append(memory_used)
-
                     indices = indices[current_batch_size:]
                     if indices:
-                        current_input_indices = self.data.loc[indices[0], "input_ids_length"]
-                        current_batch_size = get_batchsize(current_input_indices, self.memory_mb, gpu_batch_size=self.gpu_batch_size)
+                        input_length = self.data.loc[indices[0], "input_ids_length"]
+                        current_batch_size = self.get_batchsize(input_length)
                 else:
                     if self.verbose:
                         print(f"Batch size {current_batch_size} too large")
-                    self.failed_input_pairs.append(input_pair)
                     torch.cuda.empty_cache()
+                    current_batch_size = current_batch_size - self.gpu_batch_size
 
-    def check_input_pair_against_constraints(self, input_length: int, batch_size: int) -> Tuple[int, int]:
-        if self.verbose:
-            print(f"Input length: {input_length}")
-            print(f"Batch size: {batch_size}")
-        
-        for succeeded_length, succeeded_batch_size in self.input_pairs:
-            if succeeded_length >= input_length and succeeded_batch_size >= batch_size:
-                memory_used = self.memory_values[self.input_pairs.index((succeeded_length, succeeded_batch_size))]
-                mem_utilization = memory_used / self.memory_mb
-                batch_size = succeeded_batch_size + self.gpu_batch_size if mem_utilization < 0.8 else succeeded_batch_size
-        
-        for failed_length, failed_batch_size in self.failed_input_pairs:
-            if input_length >= failed_length and batch_size >= failed_batch_size:
-                batch_size = failed_batch_size - self.gpu_batch_size
-        
-        if self.verbose:
-            print(f"New batch size: {batch_size}")
-        return int(input_length), int(batch_size)
+    def get_batchsize(self, input_length: int) -> int:
+        find_next_multiple = lambda n, m: n if n % m == 0 else n + (m - n % m)
+        next_input_length = find_next_multiple(input_length, self.gen_length)
+        next_input_length = str(int(next_input_length))
+        if next_input_length in self.gpu_dataset.keys():
+            return int(self.gpu_dataset[next_input_length])-self.gpu_batch_size
+        else:
+            raise ValueError(f"Batch size not found for input length {next_input_length}")
 
     def complete_indices(self, indices: List[int], generation_kwargs: Dict[str, Any] = {}) -> bool:
         subset = self.data.iloc[indices]
@@ -157,8 +167,7 @@ class CompletionDataset:
                 completions = self.model.generate(
                     input_ids=padded_tokens,
                     attention_mask=attention_mask,
-                    max_new_tokens=self.completion_length,
-                    do_sample=True,
+                    max_new_tokens=self.gen_length,
                     **generation_kwargs,
                 )
 
