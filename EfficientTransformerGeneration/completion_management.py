@@ -56,7 +56,6 @@ class CompletionDataset:
         self.gpu_batch_size = gpu_batch_size
         if tokenizer.chat_template is None:
             tokenizer.chat_template = default_chat_template
-        self.data = data if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
         self.completion_name = completion_name or f"{model.config._name_or_path}_completions"
         self.gen_length = gen_length
         self.device = model.device
@@ -66,6 +65,13 @@ class CompletionDataset:
         self.failed_input_pairs: List[Tuple[int, int]] = []
         self.verbose = verbose
         self.memory_mb = torch.cuda.get_device_properties(0).total_memory / 1024**2
+        self.data = data if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
+
+        #set a new column called "finished" to False for all rows that do not have a completion
+        self.data["finished"] = False  # Initialize all rows as False
+        self.data["answer_tokens"] = pd.Series([[]] * len(self.data))
+        if self.completion_name in self.data.columns:
+            self.data.loc[self.data[self.completion_name].notna(), "finished"] = True
 
 
         model_name = model.config._name_or_path
@@ -84,17 +90,19 @@ class CompletionDataset:
         
 
     def __call__(self, generation_kwargs: Dict[str, Any] = {}) -> pd.DataFrame:
-        if "input_ids" not in self.data.columns:
-            self.tokenize_data()
+        
         
         if not hasattr(self, "beginning_tokens"):
             self.get_template_tokens()
-        
-        self.complete_all(generation_kwargs=generation_kwargs)
+        if "input_ids" not in self.data.columns:
+            self.tokenize_data()
+        while not self.data["finished"].all():
+            self.complete_all(generation_kwargs=generation_kwargs)
         return self.data
     
     def complete_all(self, generation_kwargs: Dict[str, Any] = {}) -> None:
-        sorted_indices = self.data.sort_values("input_ids_length", ascending=False).index
+        unfinished_data = self.data[~self.data["finished"]]
+        sorted_indices = unfinished_data.sort_values("input_ids_length", ascending=False).index
         indices = sorted_indices.tolist()
 
 
@@ -132,49 +140,52 @@ class CompletionDataset:
         next_input_length = find_next_multiple(input_length, self.gen_length)
         next_input_length = str(int(next_input_length))
         if next_input_length in self.gpu_dataset.keys():
-            return int(self.gpu_dataset[next_input_length])-self.gpu_batch_size
+            return int(self.gpu_dataset[next_input_length])
         else:
             raise ValueError(f"Batch size not found for input length {next_input_length}")
 
     def complete_indices(self, indices: List[int], generation_kwargs: Dict[str, Any] = {}) -> bool:
         subset = self.data.iloc[indices]
-        tokens = subset["input_ids"].tolist()
-        
-        max_length = max(map(len, tokens))
-        padding_result = self.tokenizer.pad(
-            {"input_ids": tokens},
-            padding="max_length",
-            max_length=max_length,
-            return_tensors="pt",
-            return_attention_mask=True
-        )
+        prompt_tokens = subset["input_ids"].tolist()
+        answer_tokens = subset["answer_tokens"].tolist()
+
+        prompt_and_answer_lengths = [(len(prompt_tokens[i]) + len(answer_tokens[i])) for i in range(len(prompt_tokens))]
+        max_length = max(prompt_and_answer_lengths)
+
+        padded_prompt_tokens = [prompt_tokens[i] + [self.tokenizer.pad_token_id] * (max_length - prompt_and_answer_lengths[i]) for i in range(len(prompt_tokens))]
+        padded_prompt_attention_mask = [[1] * len(prompt_tokens[i]) + [0] * (max_length - len(prompt_tokens[i])) for i in range(len(prompt_tokens))]
+
+        complete_tokens = [self.beginning_tokens.tolist() + padded_prompt_tokens[i] + self.ending_tokens.tolist() + answer_tokens[i] for i in range(len(padded_prompt_tokens))]
+        complete_attention_mask = [[1] * len(self.beginning_tokens) + padded_prompt_attention_mask[i] + [1] * len(self.ending_tokens) + [1] * len(answer_tokens[i]) for i in range(len(padded_prompt_tokens))]
+
+        answer_start_idx = [len(self.beginning_tokens) + len(prompt_tokens[i]) + len(self.ending_tokens) for i in range(len(prompt_tokens))]
         
         try:
-            padded_tokens = padding_result["input_ids"].to(self.device)
-            attention_mask = padding_result["attention_mask"].to(self.device)
-
-            beginning_tokens = self.beginning_tokens.unsqueeze(0).expand(padded_tokens.shape[0], -1)
-            ending_tokens = self.ending_tokens.unsqueeze(0).expand(padded_tokens.shape[0], -1)
-            padded_tokens = torch.cat([beginning_tokens, padded_tokens, ending_tokens], dim=1)
-            
-            beginning_mask = torch.ones(beginning_tokens.shape, dtype=torch.long, device=self.device)
-            ending_mask = torch.ones(ending_tokens.shape, dtype=torch.long, device=self.device)
-            attention_mask = torch.cat([beginning_mask, attention_mask, ending_mask], dim=1)
-
-            pad_length = padded_tokens.shape[1]
+            input_ids = torch.tensor(complete_tokens).to(self.device)
+            attention_mask = torch.tensor(complete_attention_mask).to(self.device)
 
             with torch.no_grad():
                 completions = self.model.generate(
-                    input_ids=padded_tokens,
+                    input_ids=input_ids,
                     attention_mask=attention_mask,
                     max_new_tokens=self.gen_length,
                     **generation_kwargs,
-                )
+                ).cpu()
 
-            completions = completions[:, pad_length:]
-            decoded = self.tokenizer.batch_decode(completions, skip_special_tokens=True)
+
+            completions = [c[i:] for c, i in zip(completions, answer_start_idx)]
+
             
+            #finished completions are those, that have an end token at the end
+            finished = [self.tokenizer.eos_token_id in c for c in completions]
+            decoded = self.tokenizer.batch_decode(completions, skip_special_tokens=True)
+
+            print(decoded)
+            print(finished)
+            print(completions)
             self.data.loc[indices, self.completion_name] = decoded
+            self.data.loc[indices, "finished"] = finished
+            self.data.loc[indices, "answer_tokens"] = completions
             return True
         except RuntimeError as e:
             if "CUDA out of memory" in str(e):
@@ -207,7 +218,8 @@ class CompletionDataset:
             return_tensors=None
         )
         self.data[tokenizer_name] = encoded["input_ids"]
-        self.data[f"{tokenizer_name}_length"] = list(map(len, encoded["input_ids"]))
+        token_count = lambda x: len(x) + self.beginning_tokens.shape[0] + self.ending_tokens.shape[0]
+        self.data[f"{tokenizer_name}_length"] = list(map(token_count, encoded["input_ids"]))
 
 #%%
 if __name__ == "__main__":

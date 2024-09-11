@@ -14,7 +14,7 @@ text_5 = "What is the capital of France?"
 text_6 = "Translate into english: Dunkel war's, der Mond schien helle, schneebedeckt die grüne Flur. Als ein Wagen blitzesschnelle langsam um die Ecke fuhr. Drinnen saßen stehend Leute schweigend ins Gespräch vertieft. Als ein totgeschoss'ner Hase auf der Sandbank Schlittschuh lief."
 
 dataset = []
-for i in range(100):
+for i in range(2):
     dataset.append({"prompt": text_1})
     dataset.append({"prompt": text_2})
     dataset.append({"prompt": text_3})
@@ -32,15 +32,10 @@ tokenizer.pad_token = tokenizer.eos_token
 #%%
 c_d = CompletionDataset(model, tokenizer, dataset)
 #results = c_d()
-# %%
-
-print(c_d.gpu_dataset)
-
-
-
 #%%
-c_d.tokenize_data()
+
 c_d.get_template_tokens()
+c_d.tokenize_data()
 c_d.verbose = True
 #%%
 c_d.complete_all()
@@ -49,9 +44,42 @@ c_d.complete_all()
 # %%
 c_d.data
 # %%
-gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+#print 10 random completions that are finished and ten that are not
+import random
+c_d.data["finished"]
+finishde_indeces = [i for i in range(len(c_d.data["finished"])) if c_d.data["finished"][i]]
+not_finished_indeces = [i for i in range(len(c_d.data["finished"])) if not c_d.data["finished"][i]]
 # %%
-gpu_name
+for i in random.sample(finishde_indeces, 10):
+    print(c_d.data["meta-llama/Meta-Llama-3-8B-Instruct_completions"][i])
 # %%
-int(c_d.gpu_dataset["50"])
+for i in random.sample(not_finished_indeces, 10):
+    print("##################")
+    print(c_d.data["meta-llama/Meta-Llama-3-8B-Instruct_completions"][i])
+
+# %%
+tokenizer.decode([128001])
+# %%
+tokenizer.decode([128009])
+# %%
+tokenizer.eos_token
+# %%
+tokenizer.end_of_text_token
+
+# %%
+tokenizer.eos_token_id
+# %%
+completion = torch.randint(0, 50256, (20,20))
+answer_idx = [i for i in range(20)]
+
+answers = [c[i:] for c, i in zip(completion, answer_idx)]
+tokenizer.batch_decode(answers)
+
+
+
+# %%
+complete = [35185 in a for a in answers]
+complete
+# %%
+answers
 # %%
