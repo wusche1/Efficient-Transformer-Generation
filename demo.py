@@ -14,7 +14,7 @@ text_5 = "What is the capital of France?"
 text_6 = "Translate into english: Dunkel war's, der Mond schien helle, schneebedeckt die grüne Flur. Als ein Wagen blitzesschnelle langsam um die Ecke fuhr. Drinnen saßen stehend Leute schweigend ins Gespräch vertieft. Als ein totgeschoss'ner Hase auf der Sandbank Schlittschuh lief."
 
 dataset = []
-for i in range(300):
+for i in range(100):
     dataset.append({"prompt": text_1})
     dataset.append({"prompt": text_2})
     dataset.append({"prompt": text_3})
@@ -33,7 +33,18 @@ tokenizer.pad_token = tokenizer.eos_token
 c_d = CompletionDataset(model, tokenizer, dataset)
 #results = c_d()
 # %%
-c_d()
+c_d.tokenize_data()
+c_d.get_template_tokens()
+c_d.verbose = True
+#%%
+c_d.complete_all()
 
 
+# %%
+c_d.verbose
+# %%
+torch.cuda.empty_cache()
+# %%
+indices = [0, 1, 2, 3, 4, 5]
+c_d.complete_indeces(indices)
 # %%

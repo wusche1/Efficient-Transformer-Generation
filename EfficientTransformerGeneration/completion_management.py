@@ -16,7 +16,7 @@ default_chat_template ="""{% for message in messages %}
 {% endfor %}""".strip()
 
 class CompletionDataset:
-    def __init__(self, model, tokenizer, data, completion_name = None, completion_length = 50, memory_mb = None, system_prompt = "You are a helpful assistant.", gpu_batch_size = 64):
+    def __init__(self, model, tokenizer, data, completion_name = None, completion_length = 50, memory_mb = None, system_prompt = "You are a helpful assistant.", gpu_batch_size = 64, verbose = False):
         self.model = model
         self.tokenizer = tokenizer
         self.gpu_batch_size = gpu_batch_size
@@ -33,12 +33,15 @@ class CompletionDataset:
         self.device = model.device
         if memory_mb is None:
             device = model.device
-            memory_mb = torch.cuda.get_device_properties(device).total_memory / 1024**2 - torch.cuda.memory_allocated(device) / 1024**2
+            memory_mb = torch.cuda.get_device_properties(device).total_memory / 1024**2 #- torch.cuda.memory_allocated(device) / 1024**2
         self.memory_mb = memory_mb
         self.system_prompt = system_prompt
         self.input_pairs = None
         self.memory_values = None
+        
         self.failed_input_pairs = []
+
+        self.verbose = verbose
 
     def __call__(self, generation_kwargs = {}):
         #heck wether data is already tokenized
@@ -53,7 +56,7 @@ class CompletionDataset:
         self.complete_all(generation_kwargs = generation_kwargs)
         return self.data
     
-    def complete_all(self, verbose = False, generation_kwargs = {}):
+    def complete_all(self, generation_kwargs = {}):
         sorted_indeces = self.data.sort_values("input_ids_length").index
         #reverse the indeces
         sorted_indeces = sorted_indeces[::-1]
@@ -63,7 +66,7 @@ class CompletionDataset:
         self.input_pairs, self.memory_values = generate_input_pairs_and_memory_values(self.model, self.tokenizer, self.completion_length, base_input=50, base_batch=self.gpu_batch_size, step_input=20, step_batch=self.gpu_batch_size)
 
         #get the batch size estimator
-        _, get_batchsize = generate_gpu_usage_estimator_from_input_pairs_and_memory_values(self.input_pairs, self.memory_values, verbose = verbose)
+        _, get_batchsize = generate_gpu_usage_estimator_from_input_pairs_and_memory_values(self.input_pairs, self.memory_values, verbose = self.verbose)
 
 
   
@@ -75,7 +78,7 @@ class CompletionDataset:
             input_length = self.data.loc[indeces[0], "input_ids_length"]
             input_length, current_batch_size = self.check_input_pair_against_constraints(input_length, current_batch_size)
             current_indeces = indeces[:current_batch_size]
-            if verbose:
+            if self.verbose:
                 print(f"Current batch size: {current_batch_size}")
                 #print(f"Creating completions of length{self.data.loc[current_indeces, 'input_ids_length'].max()}")
 
@@ -86,7 +89,7 @@ class CompletionDataset:
             #print(memory_used)
             input_pair = (input_length, current_batch_size)
             if return_value:
-                if verbose:
+                if self.verbose:
                     print(f"Batch size {current_batch_size} OK")
                     print(f"Memory utilization: {100*memory_used/self.memory_mb:.2f}%")
                 #update the progress bar
@@ -104,18 +107,21 @@ class CompletionDataset:
                 if len(indeces) > 0:
                     current_input_indeces = self.data.loc[indeces[0], "input_ids_length"]
                     current_batch_size = get_batchsize(current_input_indeces, self.memory_mb, gpu_batch_size = self.gpu_batch_size)
-                    if verbose:
+                    if self.verbose:
                         print(f"Next input length: {current_input_indeces}")
                         print(f"Next batch size: {current_batch_size}")
                 
                     
             else:
-                if verbose:
+                if self.verbose:
                     print(f"Batch size {current_batch_size} too large")
                 self.failed_input_pairs.append(input_pair)
                 torch.cuda.empty_cache()
     def check_input_pair_against_constraints(self, input_length, batch_size ):
         #print(f"input_length {input_length}")
+        if self.verbose:
+            print(f"Input length: {input_length}")
+            print(f"Batch size: {batch_size}")
         for i, (succeeded_length, succeeded_batch_size) in enumerate(self.input_pairs):
             if succeeded_length >= input_length and succeeded_batch_size >= batch_size:
                 memory_used = self.memory_values[i]
@@ -127,6 +133,8 @@ class CompletionDataset:
         for failed_length, failed_batch_size in self.failed_input_pairs:
             if input_length >= failed_length and batch_size >= failed_batch_size:
                 batch_size = failed_batch_size - self.gpu_batch_size
+        if self.verbose:
+            print(f"New batch size: {batch_size}")
         return int(input_length), int(batch_size)
 
                 

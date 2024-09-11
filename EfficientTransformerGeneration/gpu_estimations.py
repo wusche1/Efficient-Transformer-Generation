@@ -93,7 +93,12 @@ def generate_gpu_usage_estimator_from_input_pairs_and_memory_values(input_pairs,
         return max(0, d + a * input_length + b * batch_size + c * input_length * batch_size)
 
     def max_batch_size(input_length, memory, gpu_batch_size=64, safety_factor=0.8):
-        return int(int((((memory - d - a * input_length) / (b + c * input_length))//gpu_batch_size)*safety_factor)*gpu_batch_size)
+        estimated_batch_size = (memory - d - a * input_length) / (b + c * input_length)
+        #multiply with safety factor
+        estimated_batch_size *= safety_factor
+        #round to the nearest multiple of gpu_batch_size
+        estimated_batch_size = round(estimated_batch_size / gpu_batch_size) * gpu_batch_size
+        return estimated_batch_size
 
     # Print results
     if verbose:
@@ -110,6 +115,20 @@ if __name__ == "__main__":
     import numpy as np
     import matplotlib.pyplot as plt
     from tqdm import tqdm
+
+    input_pairs = [(50, 64), (70, 64), (50, 128), (70, 128)]
+    memory_values = np.array([200, 300, 400, 500])
+
+    estimate_memory, get_batchsize = generate_gpu_usage_estimator_from_input_pairs_and_memory_values(input_pairs, memory_values, verbose=True)
+
+    max_estimated_batch_size = get_batchsize(100, 1000)
+    assert type(max_estimated_batch_size) == int
+    assert max_estimated_batch_size%64 == 0
+
+
+
+#%%
+if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = AutoModelForCausalLM.from_pretrained(
         "meta-llama/Meta-Llama-3-8B-Instruct"
