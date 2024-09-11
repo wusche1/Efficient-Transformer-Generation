@@ -50,6 +50,7 @@ class CompletionDataset:
         system_prompt: str = "You are a helpful assistant.",
         gpu_batch_size: int = 64,
         verbose: bool = False,
+        fixed_batch_size: Optional[int] = None,
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -69,9 +70,12 @@ class CompletionDataset:
 
         #set a new column called "finished" to False for all rows that do not have a completion
         self.data["finished"] = False  # Initialize all rows as False
-        self.data["answer_tokens"] = pd.Series([[]] * len(self.data))
+        self.data["answer_tokens"] = pd.Series([' '] * len(self.data))
         if self.completion_name in self.data.columns:
             self.data.loc[self.data[self.completion_name].notna(), "finished"] = True
+        self.fixed_batch_size = fixed_batch_size
+        if fixed_batch_size is not None:
+            return
 
 
         model_name = model.config._name_or_path
@@ -136,6 +140,8 @@ class CompletionDataset:
                     current_batch_size = current_batch_size - self.gpu_batch_size
 
     def get_batchsize(self, input_length: int) -> int:
+        if self.fixed_batch_size is not None:
+            return self.fixed_batch_size
         find_next_multiple = lambda n, m: n if n % m == 0 else n + (m - n % m)
         next_input_length = find_next_multiple(input_length, self.gen_length)
         next_input_length = str(int(next_input_length))
@@ -148,6 +154,7 @@ class CompletionDataset:
         subset = self.data.iloc[indices]
         prompt_tokens = subset["input_ids"].tolist()
         answer_tokens = subset["answer_tokens"].tolist()
+        answer_tokens = [list(map(int, s.split())) for s in answer_tokens]
 
         prompt_and_answer_lengths = [(len(prompt_tokens[i]) + len(answer_tokens[i])) for i in range(len(prompt_tokens))]
         max_length = max(prompt_and_answer_lengths)
@@ -182,11 +189,11 @@ class CompletionDataset:
 
             print(decoded)
             print(finished)
-            print(completions)
+            print([c.tolist() for c in completions])
+            print(len([c.tolist() for c in completions]))
             self.data.loc[indices, self.completion_name] = decoded
             self.data.loc[indices, "finished"] = finished
-            self.data.loc[indices, "answer_tokens"] = completions
-            return True
+            self.data.loc[indices, "answer_tokens"] =[' '.join(map(str, c.tolist())) for c in completions]
         except RuntimeError as e:
             if "CUDA out of memory" in str(e):
                 return False
