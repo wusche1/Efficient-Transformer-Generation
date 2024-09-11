@@ -1,111 +1,79 @@
 #%%
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from math import isclose
-from sklearn.linear_model import LinearRegression
-import numpy as np
-import gc
 
-def measure_memory_usage(func, return_value = None):
+from typing import Callable, Tuple, List, Any
+import torch
+from torch import Tensor
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import numpy as np
+
+def measure_memory_usage(func: Callable[[], Any], return_value: bool = False) -> float:
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
-    v = func()
-    memory = torch.cuda.max_memory_allocated()/ (1024 * 1024)
+    val = func()
+    memory = torch.cuda.max_memory_allocated() / (1024 * 1024)
     if return_value:
-        return v, memory
+        return val, memory
     return memory
 
-
-def execute_and_measure_memory(func, *args, **kwargs):
-    """
-    Execute a function and measure its GPU memory utilization.
-    
-    Args:
-    func (callable): The function to execute.
-    *args: Positional arguments to pass to the function.
-    **kwargs: Keyword arguments to pass to the function.
-    
-    Returns:
-    tuple: A tuple containing (function_return_value, memory_utilization_rate)
-    """
-    if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is not available. This function requires a GPU.")
-
-    # Clear cache and collect garbage to get a clean start
-    torch.cuda.empty_cache()
-    gc.collect()
-
-    # Get total GPU memory
-    total_memory = torch.cuda.get_device_properties(0).total_memory
-    
-    # Record initial used memory
-    initial_used_memory = torch.cuda.memory_allocated()
-
-    # Execute the function and capture its return value
-    try:
-        return_value = func(*args, **kwargs)
-    finally:
-        # Measure peak memory usage
-        peak_memory = torch.cuda.max_memory_allocated()
-        
-        # Calculate memory utilization rate
-        memory_utilization_rate = peak_memory / total_memory
-
-        # Reset peak memory stats
-        torch.cuda.reset_peak_memory_stats()
-
-    return return_value, memory_utilization_rate
-
-
-
-def generate_text(model, tokenizer, input_length, gen_length, batch_size = 1):
-    input_ids = torch.randint(0, tokenizer.vocab_size, (batch_size, input_length), device=model.device)
+def generate_text(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, input_length: int, gen_length: int, batch_size: int = 1) -> None:
+    input_ids: Tensor = torch.randint(0, tokenizer.vocab_size, (batch_size, input_length), device=model.device)
     with torch.no_grad():
-        text = model.generate(input_ids, max_new_tokens = gen_length, min_new_tokens = gen_length, do_sample=True)
-        #print(text.shape)
+        model.generate(input_ids, max_new_tokens=gen_length, min_new_tokens=gen_length, do_sample=True)
 
-def generate_gpu_usage_estimator(model, tokenizer, gen_tokens, base_input=50, base_batch=64, step_input=20, step_batch=64):
-    input_pairs, memory_values = generate_input_pairs_and_memory_values(model, tokenizer, gen_tokens, base_input, base_batch, step_input, step_batch)
-    return generate_gpu_usage_estimator_from_input_pairs_and_memory_values(input_pairs, memory_values)
-
-def generate_input_pairs_and_memory_values(model, tokenizer, gen_tokens, base_input=50, base_batch=64, step_input=20, step_batch=64):
-    def memory_function(input_length, batch_size):
-        return measure_memory_usage(lambda: generate_text(model, tokenizer, input_length, gen_tokens, batch_size))
-
-    input_pairs = [(base_input, base_batch), (base_input + step_input, base_batch), 
-                   (base_input, base_batch + step_batch), (base_input + step_input, base_batch + step_batch)]
-    memory_values = [memory_function(*pair) for pair in input_pairs]
+def generate_input_pairs_and_memory_values(
+    model: AutoModelForCausalLM, 
+    tokenizer: AutoTokenizer, 
+    gen_tokens: int, 
+    base_input: int = 50, 
+    base_batch: int = 64, 
+    step_input: int = 20, 
+    step_batch: int = 64
+) -> Tuple[List[Tuple[int, int]], List[float]]:
+    input_pairs: List[Tuple[int, int]] = [
+        (base_input, base_batch),
+        (base_input + step_input, base_batch),
+        (base_input, base_batch + step_batch),
+        (base_input + step_input, base_batch + step_batch)
+    ]
+    memory_values: List[float] = [
+        measure_memory_usage(lambda: generate_text(model, tokenizer, input_length, gen_tokens, batch_size))
+        for input_length, batch_size in input_pairs
+    ]
     return input_pairs, memory_values
 
-def generate_gpu_usage_estimator_from_input_pairs_and_memory_values(input_pairs, memory_values, verbose=False):
-    # Prepare data for linear regression
-    X = np.array([[1, pair[0], pair[1], pair[0] * pair[1]] for pair in input_pairs])
-    y = np.array(memory_values)
-
-    # Solve for coefficients using numpy's least squares solver
-    coeffs, residuals, rank, s = np.linalg.lstsq(X, y, rcond=None)
-
-    # Extract coefficients
+def generate_gpu_usage_estimator_from_input_pairs_and_memory_values(
+    input_pairs: List[Tuple[int, int]], 
+    memory_values: List[float],
+    verbose: bool = False
+    ) -> Tuple[Callable[[int, int], float], Callable[[int, float, int, float], int]]:
+    X: np.ndarray = np.array([[1, pair[0], pair[1], pair[0] * pair[1]] for pair in input_pairs])
+    y: np.ndarray = np.array(memory_values)
+    coeffs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
     d, a, b, c = coeffs
+    if verbose:
+        print(f"Memory = {d:.2f} + {a:.2f} * input_length + {b:.2f} * batch_size + {c:.2f} * input_length * batch_size")
 
-    # Create the estimator function
-    def estimate_memory(input_length, batch_size):
+    def estimate_memory(input_length: int, batch_size: int) -> float:
         return max(0, d + a * input_length + b * batch_size + c * input_length * batch_size)
 
-    def max_batch_size(input_length, memory, gpu_batch_size=64, safety_factor=0.8):
-        estimated_batch_size = (memory - d - a * input_length) / (b + c * input_length)
-        #multiply with safety factor
+    def max_batch_size(input_length: int, memory: float, gpu_batch_size: int = 64, safety_factor: float = 0.8) -> int:
+        estimated_batch_size: float = (memory - d - a * input_length) / (b + c * input_length)
         estimated_batch_size *= safety_factor
-        #round to the nearest multiple of gpu_batch_size
-        estimated_batch_size = round(estimated_batch_size / gpu_batch_size) * gpu_batch_size
-        return estimated_batch_size
-
-    # Print results
-    if verbose:
-        print(f"Memory estimation function:")
-        print(f"M(i, b) = {d:.4f} + {a:.4f}*i + {b:.4f}*b + {c:.4f}*i*b")
+        return round(estimated_batch_size / gpu_batch_size) * gpu_batch_size
 
     return estimate_memory, max_batch_size
+
+def generate_gpu_usage_estimator(
+    model: AutoModelForCausalLM, 
+    tokenizer: AutoTokenizer, 
+    gen_tokens: int, 
+    base_input: int = 50, 
+    base_batch: int = 64, 
+    step_input: int = 20, 
+    step_batch: int = 64
+) -> Tuple[Callable[[int, int], float], Callable[[int, float, int, float], int]]:
+    input_pairs, memory_values = generate_input_pairs_and_memory_values(model, tokenizer, gen_tokens, base_input, base_batch, step_input, step_batch)
+    return generate_gpu_usage_estimator_from_input_pairs_and_memory_values(input_pairs, memory_values)
 
 
 

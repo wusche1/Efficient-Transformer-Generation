@@ -41,10 +41,5 @@ c_d.complete_all()
 
 
 # %%
-c_d.verbose
-# %%
-torch.cuda.empty_cache()
-# %%
-indices = [0, 1, 2, 3, 4, 5]
-c_d.complete_indeces(indices)
+c_d.data
 # %%
