@@ -24,4 +24,7 @@ setup(
     ],
     python_requires=">=3.6",
     include_package_data=True,
+    package_data={
+        'EfficientTransformerGeneration': ['EfficientTransformerGeneration/gpu_memory_dataset.json'],
+    },
 )
