@@ -31,49 +31,7 @@ tokenizer.pad_token = tokenizer.eos_token
 
 #%%
 c_d = CompletionDataset(model, tokenizer, dataset)
+c_d.verbose = True
 results = c_d()
 #%%
-
-c_d.get_template_tokens()
-c_d.tokenize_data()
-c_d.verbose = True
-#%%
-c_d.complete_all()
-#%%
-n_finished = len([i for i in c_d.data["finished"] if i])
-n_not_finished = len([i for i in c_d.data["finished"] if not i])
-
-print(f"Finished: {n_finished}")
-print(f"Not Finished: {n_not_finished}")
-
-# %%
-c_d.data
-# %%
-
-print(c_d.data["input_ids"][0])
-print(c_d.data["input_ids"][1])
-
-#%%
-#print 10 random completions that are finished and ten that are not
-import random
-c_d.data["finished"]
-finishde_indeces = [i for i in range(len(c_d.data["finished"])) if c_d.data["finished"][i]]
-not_finished_indeces = [i for i in range(len(c_d.data["finished"])) if not c_d.data["finished"][i]]
-# %%
-for i in random.sample(finishde_indeces, 4):
-    print("##################")
-    print(c_d.data["meta-llama/Meta-Llama-3-8B-Instruct_completions"][i])
-# %%
-for i in random.sample(not_finished_indeces, 4):
-    print("##################")
-    print(c_d.data["meta-llama/Meta-Llama-3-8B-Instruct_completions"][i])
-
-# %%
-
-
-n_finished = len([i for i in c_d.data["finished"] if i])
-n_not_finished = len([i for i in c_d.data["finished"] if not i])
-
-print(f"Finished: {n_finished}")
-print(f"Not Finished: {n_not_finished}")
-# %%
+results
