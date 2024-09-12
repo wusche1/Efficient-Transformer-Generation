@@ -169,10 +169,18 @@ class CompletionDataset:
                         input_length = self.data.loc[indices[0], "input_ids_length"]
                         current_batch_size = self.get_batchsize(input_length)
                 else:
-                    if self.verbose:
-                        print(f"Batch size {current_batch_size} too large")
+                    if current_batch_size == 1:
+                        if self.verbose:
+                            print(f"Single batch size failed  at prompt number {current_indices[0]}")
+                            #set finished to True to avoid infinite loop
+                        self.data.loc[current_indices[0], "finished"] = True
+                        pbar.update(1)
+                    else:
+                        if self.verbose:
+                            print(f"Batch size {current_batch_size} too large")
+                            current_batch_size = current_batch_size - self.gpu_batch_size
                     torch.cuda.empty_cache()
-                    current_batch_size = current_batch_size - self.gpu_batch_size
+                    
 
     def get_batchsize(self, input_length: int) -> int:
         if self.fixed_batch_size is not None:
@@ -183,7 +191,9 @@ class CompletionDataset:
         if next_input_length in self.gpu_dataset.keys():
             return int(self.gpu_dataset[next_input_length])
         else:
-            raise ValueError(f"Batch size not found for input length {next_input_length}")
+            if self.verbose:
+                print(f"Input length {next_input_length} not found in dataset")
+            return 1
 
     def complete_indices(self, indices: List[int], generation_kwargs: Dict[str, Any] = {}) -> bool:
         subset = self.data.iloc[indices]
@@ -214,10 +224,6 @@ class CompletionDataset:
             finished = [self.tokenizer.eos_token_id in c for c in completions]
             decoded = self.tokenizer.batch_decode(completions, skip_special_tokens=True)
 
-            print(decoded)
-            print(finished)
-            print([c.tolist() for c in completions])
-            print(len([c.tolist() for c in completions]))
             self.data.loc[indices, self.completion_name] = decoded
             self.data.loc[indices, "finished"] = finished
             for idx, completion in zip(indices, completions):
