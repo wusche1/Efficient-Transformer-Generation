@@ -183,13 +183,12 @@ class CompletionDataset:
                     
 
     def get_batchsize(self, input_length: int) -> int:
-        if self.fixed_batch_size is not None:
-            return self.fixed_batch_size
-        find_next_multiple = lambda n, m: n if n % m == 0 else n + (m - n % m)
-        next_input_length = find_next_multiple(input_length, self.gen_length)
-        next_input_length = str(int(next_input_length))
-        if next_input_length in self.gpu_dataset.keys():
-            return int(self.gpu_dataset[next_input_length])
+
+        recorded_lengths = self.gpu_dataset.keys()
+        #find smalles key that is larger than input_length
+        next_input_length = next((l for l in recorded_lengths if l >= input_length), None)
+        if next_input_length:
+            return self.gpu_dataset[next_input_length]
         else:
             if self.verbose:
                 print(f"Input length {next_input_length} not found in dataset")

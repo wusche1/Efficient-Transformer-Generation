@@ -1,7 +1,10 @@
+MANIFEST.in
 setup.py
 EfficientTransformerGeneration/__init__.py
 EfficientTransformerGeneration/completion_management.py
+EfficientTransformerGeneration/create_batchsize_dataset.py
 EfficientTransformerGeneration/gpu_estimations.py
+EfficientTransformerGeneration/gpu_memory_dataset.json
 EfficientTransformerGeneration.egg-info/PKG-INFO
 EfficientTransformerGeneration.egg-info/SOURCES.txt
 EfficientTransformerGeneration.egg-info/dependency_links.txt
