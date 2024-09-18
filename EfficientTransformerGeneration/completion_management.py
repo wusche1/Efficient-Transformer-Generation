@@ -1,4 +1,5 @@
 
+
 from typing import List, Tuple, Callable, Optional, Dict, Any
 import torch
 import numpy as np
@@ -81,7 +82,7 @@ class CompletionDataset:
         tokenizer: PreTrainedTokenizer,
         data: pd.DataFrame,
         completion_name: Optional[str] = None,
-        gen_length: int = 50,
+        gen_length: int = 150,
         system_prompt: str = "You are a helpful assistant.",
         gpu_batch_size: int = 64,
         verbose: bool = False,
@@ -184,9 +185,8 @@ class CompletionDataset:
 
     def get_batchsize(self, input_length: int) -> int:
 
-        recorded_lengths = self.gpu_dataset.keys()
-        #find smalles key that is larger than input_length
-        next_input_length = next((l for l in recorded_lengths if l >= input_length), None)
+        recorded_lengths = keys = [int(key) for key in self.gpu_dataset.keys()] 
+        next_input_length = str(next((l for l in recorded_lengths if l >= input_length), None))
         if next_input_length:
             return self.gpu_dataset[next_input_length]
         else:
@@ -292,4 +292,3 @@ if __name__ == "__main__":
 
 
 #
-# %%
