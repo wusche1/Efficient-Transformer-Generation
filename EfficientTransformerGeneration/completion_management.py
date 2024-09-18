@@ -4,6 +4,7 @@ from typing import List, Tuple, Callable, Optional, Dict, Any
 import torch
 import numpy as np
 import pandas as pd
+import sys
 from tqdm import tqdm
 from pathlib import Path
 
@@ -154,6 +155,7 @@ class CompletionDataset:
                 if self.verbose:
                     print(f"Batch size: {current_batch_size}")
                     print(f"Current input length: {input_length}")
+                    sys.stdout.flush()
 
                 def func_wrapper():
                     return self.complete_indices(current_indices, generation_kwargs=generation_kwargs)
@@ -163,6 +165,7 @@ class CompletionDataset:
                     if self.verbose:
                         print(f"Batch size {current_batch_size} OK")
                         print(f"Memory utilization: {100*memory_used/self.memory_mb:.2f}%")
+                        sys.stdout.flush()
                     pbar.update(current_batch_size)
 
                     indices = indices[current_batch_size:]
@@ -173,13 +176,15 @@ class CompletionDataset:
                     if current_batch_size == 1:
                         if self.verbose:
                             print(f"Single batch size failed  at prompt number {current_indices[0]}")
+                            sys.stdout.flush()
                             #set finished to True to avoid infinite loop
                         self.data.loc[current_indices[0], "finished"] = True
                         pbar.update(1)
                     else:
                         if self.verbose:
                             print(f"Batch size {current_batch_size} too large")
-                            current_batch_size = current_batch_size - self.gpu_batch_size
+                            sys.stdout.flush()
+                        current_batch_size = current_batch_size - self.gpu_batch_size
                     torch.cuda.empty_cache()
                     
 
@@ -192,6 +197,7 @@ class CompletionDataset:
         else:
             if self.verbose:
                 print(f"Input length {next_input_length} not found in dataset")
+                sys.stdout.flush()
             return 1
 
     def complete_indices(self, indices: List[int], generation_kwargs: Dict[str, Any] = {}) -> bool:
