@@ -121,7 +121,7 @@ class CompletionDataset:
         gpu_dataset = load_gpu_dataset()
         setting_found = False
         for setting in gpu_dataset:
-            if setting["model_name"] == model_name and setting["gpu_name"] == gpu_name and setting["gpu_batch_size"] == gpu_batch_size:
+            if setting["model_name"] == model_name and setting["gpu_name"] == gpu_name and setting["gpu_batch_size"] == gpu_batch_size and setting["gen_steps"] == self.gen_length: 
                 setting_found = True
                 self.gpu_dataset = setting["dataset"]
                 break   
