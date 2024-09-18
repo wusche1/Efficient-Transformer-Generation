@@ -134,5 +134,16 @@ if __name__ == "__main__":
 
 # %%
 if __name__ == "__main__":
-    dataset
-# %%
+
+    for key, value in dataset.items():
+        input_tokens = int(key)
+        max_batch = int(value)
+
+        try:
+            measure_memory_usage(lambda: generate_text(model, tokenizer, input_tokens, gen_steps, max_batch))
+            print(f"Successful for input tokens: {input_tokens} and max batch size: {max_batch}")
+        except RuntimeError as e:
+            print(f"Failed for input tokens: {input_tokens} and max batch size: {max_batch}")
+            print(e)
+            break
+    # %%
