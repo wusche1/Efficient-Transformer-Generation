@@ -1,415 +1,378 @@
-Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:07<00:23,  7.73s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:16<00:17,  8.55s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:25<00:08,  8.57s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:26<00:00,  5.44s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:26<00:00,  6.52s/it]
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:07<00:23,  7.67s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:16<00:16,  8.39s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:24<00:08,  8.40s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:25<00:00,  5.37s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:25<00:00,  6.42s/it]
+Existing data found. Calculating only missing input lengths.
+Skipping input tokens: 50
+Skipping input tokens: 100
+Skipping input tokens: 150
+Skipping input tokens: 200
+Skipping input tokens: 250
+Skipping input tokens: 300
+Skipping input tokens: 350
+Skipping input tokens: 400
+Skipping input tokens: 450
+Skipping input tokens: 500
+Skipping input tokens: 550
+Skipping input tokens: 600
+Skipping input tokens: 650
+Skipping input tokens: 700
+Skipping input tokens: 750
+Skipping input tokens: 800
+Skipping input tokens: 850
+Skipping input tokens: 900
+Skipping input tokens: 950
+Skipping input tokens: 1000
+Skipping input tokens: 1050
 
-Processing input tokens: 50
-Starting binary search for input length: 50
-Trying batch size: 640 (factor: 10)
-Successful. Increasing lower bound to 11
-Trying batch size: 960 (factor: 15)
-Successful. Increasing lower bound to 16
-Trying batch size: 1152 (factor: 18)
-Out of memory. Decreasing upper bound to 17
-Trying batch size: 1024 (factor: 16)
-Successful. Increasing lower bound to 17
-Trying batch size: 1088 (factor: 17)
-Successful. Increasing lower bound to 18
-Final max batch size for input length 50: 1088
-Added to dataset: 50 tokens -> max batch size 1088
+Processing input tokens: 1100
+Starting binary search for input length: 1100
+Trying batch size: 28 (factor: 28)
+Successful. Increasing lower bound to 29
+Trying batch size: 43 (factor: 43)
+Successful. Increasing lower bound to 44
+Trying batch size: 50 (factor: 50)
+Successful. Increasing lower bound to 51
+Trying batch size: 54 (factor: 54)
+Successful. Increasing lower bound to 55
+Trying batch size: 56 (factor: 56)
+Out of memory. Decreasing upper bound to 55
+Trying batch size: 55 (factor: 55)
+Out of memory. Decreasing upper bound to 54
+Final max batch size for input length 1100: 54
+Added to dataset: 1100 tokens -> max batch size 54
 
-Processing input tokens: 100
-Starting binary search for input length: 100
-Trying batch size: 512 (factor: 8)
-Successful. Increasing lower bound to 9
-Trying batch size: 832 (factor: 13)
-Out of memory. Decreasing upper bound to 12
-Trying batch size: 640 (factor: 10)
-Out of memory. Decreasing upper bound to 9
-Trying batch size: 576 (factor: 9)
-Successful. Increasing lower bound to 10
-Final max batch size for input length 100: 576
-Added to dataset: 100 tokens -> max batch size 576
-
-Processing input tokens: 150
-Starting binary search for input length: 150
-Trying batch size: 256 (factor: 4)
-Successful. Increasing lower bound to 5
-Trying batch size: 448 (factor: 7)
-Out of memory. Decreasing upper bound to 6
-Trying batch size: 320 (factor: 5)
-Successful. Increasing lower bound to 6
-Trying batch size: 384 (factor: 6)
-Successful. Increasing lower bound to 7
-Final max batch size for input length 150: 384
-Added to dataset: 150 tokens -> max batch size 384
-
-Processing input tokens: 200
-Starting binary search for input length: 200
-Trying batch size: 192 (factor: 3)
-Successful. Increasing lower bound to 4
-Trying batch size: 320 (factor: 5)
-Out of memory. Decreasing upper bound to 4
-Trying batch size: 256 (factor: 4)
-Successful. Increasing lower bound to 5
-Final max batch size for input length 200: 256
-Added to dataset: 200 tokens -> max batch size 256
-
-Processing input tokens: 250
-Starting binary search for input length: 250
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Trying batch size: 192 (factor: 3)
-Successful. Increasing lower bound to 4
-Trying batch size: 256 (factor: 4)
-Out of memory. Decreasing upper bound to 3
-Final max batch size for input length 250: 192
-Added to dataset: 250 tokens -> max batch size 192
-
-Processing input tokens: 300
-Starting binary search for input length: 300
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Trying batch size: 192 (factor: 3)
-Successful. Increasing lower bound to 4
-Final max batch size for input length 300: 192
-Added to dataset: 300 tokens -> max batch size 192
-
-Processing input tokens: 350
-Starting binary search for input length: 350
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Trying batch size: 192 (factor: 3)
-Out of memory. Decreasing upper bound to 2
-Final max batch size for input length 350: 128
-Added to dataset: 350 tokens -> max batch size 128
-
-Processing input tokens: 400
-Starting binary search for input length: 400
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Final max batch size for input length 400: 128
-Added to dataset: 400 tokens -> max batch size 128
-
-Processing input tokens: 450
-Starting binary search for input length: 450
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Final max batch size for input length 450: 128
-Added to dataset: 450 tokens -> max batch size 128
-
-Processing input tokens: 500
-Starting binary search for input length: 500
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Out of memory. Decreasing upper bound to 1
-Final max batch size for input length 500: 64
-Added to dataset: 500 tokens -> max batch size 64
-
-Processing input tokens: 550
-Starting binary search for input length: 550
-Trying batch size: 0 (factor: 0)
-Traceback (most recent call last):
-  File "/root/Efficient-Transformer-Generation/create_batchsize_dataset.py", line 74, in <module>
-    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B-Instruct")
-  File "/root/Efficient-Transformer-Generation/create_batchsize_dataset.py", line 48, in create_dataset
-    if verbose:
-  File "/root/Efficient-Transformer-Generation/create_batchsize_dataset.py", line 24, in binary_search_max_batch_size
-    try:
-  File "/root/Efficient-Transformer-Generation/EfficientTransformerGeneration/gpu_estimations.py", line 12, in measure_memory_usage
-    val = func()
-  File "/root/Efficient-Transformer-Generation/create_batchsize_dataset.py", line 24, in <lambda>
-    try:
-  File "/root/Efficient-Transformer-Generation/EfficientTransformerGeneration/gpu_estimations.py", line 22, in generate_text
-    model.generate(input_ids, max_new_tokens=gen_length, min_new_tokens=gen_length, do_sample=True, attention_mask=attention_mask, pad_token_id=tokenizer.eos_token_id)
-  File "/root/miniconda/envs/my_env/lib/python3.9/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
-    return func(*args, **kwargs)
-  File "/root/miniconda/envs/my_env/lib/python3.9/site-packages/transformers/generation/utils.py", line 2024, in generate
-    result = self._sample(
-  File "/root/miniconda/envs/my_env/lib/python3.9/site-packages/transformers/generation/utils.py", line 2969, in _sample
-    model_kwargs = self._get_initial_cache_position(input_ids, model_kwargs)
-  File "/root/miniconda/envs/my_env/lib/python3.9/site-packages/transformers/generation/utils.py", line 1413, in _get_initial_cache_position
-    cache_position = torch.ones_like(input_ids[0, :], dtype=torch.int64).cumsum(0) - 1
-IndexError: index 0 is out of bounds for dimension 0 with size 0
-Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:07<00:23,  7.91s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:17<00:17,  8.77s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:26<00:08,  8.87s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:26<00:00,  5.61s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:26<00:00,  6.72s/it]
-
-Processing input tokens: 50
-Starting binary search for input length: 50
-Trying batch size: 640 (factor: 10)
-Traceback (most recent call last):
-  File "/root/Efficient-Transformer-Generation/EfficientTransformerGeneration/create_batchsize_dataset.py", line 96, in <module>
-    if __name__ == "__main__":
-  File "/root/Efficient-Transformer-Generation/EfficientTransformerGeneration/create_batchsize_dataset.py", line 56, in create_dataset
-    sys.stdout.flush()
-  File "/root/Efficient-Transformer-Generation/EfficientTransformerGeneration/create_batchsize_dataset.py", line 28, in binary_search_max_batch_size
-    if batch_size != 0:
-  File "/root/Efficient-Transformer-Generation/EfficientTransformerGeneration/gpu_estimations.py", line 12, in measure_memory_usage
-    val = func()
-  File "/root/Efficient-Transformer-Generation/EfficientTransformerGeneration/create_batchsize_dataset.py", line 28, in <lambda>
-    if batch_size != 0:
-  File "/root/Efficient-Transformer-Generation/EfficientTransformerGeneration/gpu_estimations.py", line 22, in generate_text
-    model.generate(input_ids, max_new_tokens=gen_length, min_new_tokens=gen_length, do_sample=True, attention_mask=attention_mask, pad_token_id=tokenizer.eos_token_id)
-  File "/root/miniconda/envs/my_env/lib/python3.9/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
-    return func(*args, **kwargs)
-  File "/root/miniconda/envs/my_env/lib/python3.9/site-packages/transformers/generation/utils.py", line 2024, in generate
-    result = self._sample(
-  File "/root/miniconda/envs/my_env/lib/python3.9/site-packages/transformers/generation/utils.py", line 3020, in _sample
-    next_tokens = torch.multinomial(probs, num_samples=1).squeeze(1)
-KeyboardInterrupt
-Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:07<00:23,  7.96s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:17<00:17,  8.77s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:26<00:08,  8.93s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:27<00:00,  5.70s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:27<00:00,  6.79s/it]
-
-Processing input tokens: 50
-Starting binary search for input length: 50
-Trying batch size: 640 (factor: 10)
-Out of memory. Decreasing upper bound to 9
-Trying batch size: 256 (factor: 4)
-Successful. Increasing lower bound to 5
-Trying batch size: 448 (factor: 7)
-Successful. Increasing lower bound to 8
-Trying batch size: 512 (factor: 8)
-Successful. Increasing lower bound to 9
-Trying batch size: 576 (factor: 9)
-Successful. Increasing lower bound to 10
-Final max batch size for input length 50: 576
-Added to dataset: 50 tokens -> max batch size 576
-
-Processing input tokens: 100
-Starting binary search for input length: 100
-Trying batch size: 256 (factor: 4)
-Successful. Increasing lower bound to 5
-Trying batch size: 448 (factor: 7)
-Successful. Increasing lower bound to 8
-Trying batch size: 512 (factor: 8)
-Successful. Increasing lower bound to 9
-Trying batch size: 576 (factor: 9)
-Out of memory. Decreasing upper bound to 8
-Final max batch size for input length 100: 512
-Added to dataset: 100 tokens -> max batch size 512
-
-Processing input tokens: 150
-Starting binary search for input length: 150
-Trying batch size: 256 (factor: 4)
-Successful. Increasing lower bound to 5
-Trying batch size: 384 (factor: 6)
-Successful. Increasing lower bound to 7
-Trying batch size: 448 (factor: 7)
-Out of memory. Decreasing upper bound to 6
-Final max batch size for input length 150: 384
-Added to dataset: 150 tokens -> max batch size 384
-
-Processing input tokens: 200
-Starting binary search for input length: 200
-Trying batch size: 192 (factor: 3)
-Successful. Increasing lower bound to 4
-Trying batch size: 320 (factor: 5)
-Out of memory. Decreasing upper bound to 4
-Trying batch size: 256 (factor: 4)
-Successful. Increasing lower bound to 5
-Final max batch size for input length 200: 256
-Added to dataset: 200 tokens -> max batch size 256
-
-Processing input tokens: 250
-Starting binary search for input length: 250
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Trying batch size: 192 (factor: 3)
-Successful. Increasing lower bound to 4
-Trying batch size: 256 (factor: 4)
-Out of memory. Decreasing upper bound to 3
-Final max batch size for input length 250: 192
-Added to dataset: 250 tokens -> max batch size 192
-
-Processing input tokens: 300
-Starting binary search for input length: 300
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Trying batch size: 192 (factor: 3)
-Successful. Increasing lower bound to 4
-Final max batch size for input length 300: 192
-Added to dataset: 300 tokens -> max batch size 192
-
-Processing input tokens: 350
-Starting binary search for input length: 350
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Trying batch size: 192 (factor: 3)
-Out of memory. Decreasing upper bound to 2
-Final max batch size for input length 350: 128
-Added to dataset: 350 tokens -> max batch size 128
-
-Processing input tokens: 400
-Starting binary search for input length: 400
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Final max batch size for input length 400: 128
-Added to dataset: 400 tokens -> max batch size 128
-
-Processing input tokens: 450
-Starting binary search for input length: 450
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Successful. Increasing lower bound to 3
-Final max batch size for input length 450: 128
-Added to dataset: 450 tokens -> max batch size 128
-
-Processing input tokens: 500
-Starting binary search for input length: 500
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Trying batch size: 128 (factor: 2)
-Out of memory. Decreasing upper bound to 1
-Final max batch size for input length 500: 64
-Added to dataset: 500 tokens -> max batch size 64
-
-Processing input tokens: 550
-Starting binary search for input length: 550
-Trying batch size: 0 (factor: 0)
-Successful. Increasing lower bound to 1
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Final max batch size for input length 550: 64
-Added to dataset: 550 tokens -> max batch size 64
-
-Processing input tokens: 600
-Starting binary search for input length: 600
-Trying batch size: 0 (factor: 0)
-Successful. Increasing lower bound to 1
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Final max batch size for input length 600: 64
-Added to dataset: 600 tokens -> max batch size 64
-
-Processing input tokens: 650
-Starting binary search for input length: 650
-Trying batch size: 0 (factor: 0)
-Successful. Increasing lower bound to 1
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Final max batch size for input length 650: 64
-Added to dataset: 650 tokens -> max batch size 64
-
-Processing input tokens: 700
-Starting binary search for input length: 700
-Trying batch size: 0 (factor: 0)
-Successful. Increasing lower bound to 1
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Final max batch size for input length 700: 64
-Added to dataset: 700 tokens -> max batch size 64
-
-Processing input tokens: 750
-Starting binary search for input length: 750
-Trying batch size: 0 (factor: 0)
-Successful. Increasing lower bound to 1
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Final max batch size for input length 750: 64
-Added to dataset: 750 tokens -> max batch size 64
-
-Processing input tokens: 800
-Starting binary search for input length: 800
-Trying batch size: 0 (factor: 0)
-Successful. Increasing lower bound to 1
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Final max batch size for input length 800: 64
-Added to dataset: 800 tokens -> max batch size 64
-
-Processing input tokens: 850
-Starting binary search for input length: 850
-Trying batch size: 0 (factor: 0)
-Successful. Increasing lower bound to 1
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Final max batch size for input length 850: 64
-Added to dataset: 850 tokens -> max batch size 64
-
-Processing input tokens: 900
-Starting binary search for input length: 900
-Trying batch size: 0 (factor: 0)
-Successful. Increasing lower bound to 1
-Trying batch size: 64 (factor: 1)
-Successful. Increasing lower bound to 2
-Final max batch size for input length 900: 64
-Added to dataset: 900 tokens -> max batch size 64
-
-Processing input tokens: 950
-Starting binary search for input length: 950
-Trying batch size: 0 (factor: 0)
-Successful. Increasing lower bound to 1
-Trying batch size: 64 (factor: 1)
-Out of memory. Decreasing upper bound to 0
-Final max batch size for input length 950: 0
-
-Processing input tokens: 950
-Starting binary search for input length: 950
-Trying batch size: 32 (factor: 32)
-Successful. Increasing lower bound to 33
+Processing input tokens: 1150
+Starting binary search for input length: 1150
+Trying batch size: 27 (factor: 27)
+Successful. Increasing lower bound to 28
+Trying batch size: 41 (factor: 41)
+Successful. Increasing lower bound to 42
 Trying batch size: 48 (factor: 48)
 Successful. Increasing lower bound to 49
-Trying batch size: 56 (factor: 56)
-Successful. Increasing lower bound to 57
-Trying batch size: 60 (factor: 60)
-Successful. Increasing lower bound to 61
-Trying batch size: 62 (factor: 62)
-Successful. Increasing lower bound to 63
-Trying batch size: 63 (factor: 63)
-Successful. Increasing lower bound to 64
-Trying batch size: 64 (factor: 64)
-Out of memory. Decreasing upper bound to 63
-Final max batch size for input length 950: 63
-Added to dataset: 950 tokens -> max batch size 63
+Trying batch size: 51 (factor: 51)
+Successful. Increasing lower bound to 52
+Trying batch size: 53 (factor: 53)
+Out of memory. Decreasing upper bound to 52
+Trying batch size: 52 (factor: 52)
+Successful. Increasing lower bound to 53
+Final max batch size for input length 1150: 52
+Added to dataset: 1150 tokens -> max batch size 52
 
-Processing input tokens: 1000
-Starting binary search for input length: 1000
-Trying batch size: 31 (factor: 31)
-Successful. Increasing lower bound to 32
+Processing input tokens: 1200
+Starting binary search for input length: 1200
+Trying batch size: 26 (factor: 26)
+Successful. Increasing lower bound to 27
+Trying batch size: 39 (factor: 39)
+Successful. Increasing lower bound to 40
+Trying batch size: 46 (factor: 46)
+Successful. Increasing lower bound to 47
+Trying batch size: 49 (factor: 49)
+Successful. Increasing lower bound to 50
+Trying batch size: 51 (factor: 51)
+Out of memory. Decreasing upper bound to 50
+Trying batch size: 50 (factor: 50)
+Successful. Increasing lower bound to 51
+Final max batch size for input length 1200: 50
+Added to dataset: 1200 tokens -> max batch size 50
+
+Processing input tokens: 1250
+Starting binary search for input length: 1250
+Trying batch size: 25 (factor: 25)
+Successful. Increasing lower bound to 26
+Trying batch size: 38 (factor: 38)
+Successful. Increasing lower bound to 39
+Trying batch size: 44 (factor: 44)
+Successful. Increasing lower bound to 45
 Trying batch size: 47 (factor: 47)
 Successful. Increasing lower bound to 48
-Trying batch size: 55 (factor: 55)
-Successful. Increasing lower bound to 56
-Trying batch size: 59 (factor: 59)
-Successful. Increasing lower bound to 60
-Trying batch size: 61 (factor: 61)
-Out of memory. Decreasing upper bound to 60
-Trying batch size: 60 (factor: 60)
-Successful. Increasing lower bound to 61
-Final max batch size for input length 1000: 60
-Added to dataset: 1000 tokens -> max batch size 60
+Trying batch size: 49 (factor: 49)
+Out of memory. Decreasing upper bound to 48
+Trying batch size: 48 (factor: 48)
+Successful. Increasing lower bound to 49
+Final max batch size for input length 1250: 48
+Added to dataset: 1250 tokens -> max batch size 48
 
-Final Results:
-Input Tokens | Max Batch Size
-----------------------------
-          50 |            576
-         100 |            512
-         150 |            384
-         200 |            256
-         250 |            192
-         300 |            192
-         350 |            128
-         400 |            128
-         450 |            128
-         500 |             64
-         550 |             64
-         600 |             64
-         650 |             64
-         700 |             64
-         750 |             64
-         800 |             64
-         850 |             64
-         900 |             64
-         950 |             63
-        1000 |             60
+Processing input tokens: 1300
+Starting binary search for input length: 1300
+Trying batch size: 24 (factor: 24)
+Successful. Increasing lower bound to 25
+Trying batch size: 36 (factor: 36)
+Successful. Increasing lower bound to 37
+Trying batch size: 42 (factor: 42)
+Successful. Increasing lower bound to 43
+Trying batch size: 45 (factor: 45)
+Successful. Increasing lower bound to 46
+Trying batch size: 47 (factor: 47)
+Out of memory. Decreasing upper bound to 46
+Trying batch size: 46 (factor: 46)
+Successful. Increasing lower bound to 47
+Final max batch size for input length 1300: 46
+Added to dataset: 1300 tokens -> max batch size 46
+
+Processing input tokens: 1350
+Starting binary search for input length: 1350
+Trying batch size: 23 (factor: 23)
+Successful. Increasing lower bound to 24
+Trying batch size: 35 (factor: 35)
+Successful. Increasing lower bound to 36
+Trying batch size: 41 (factor: 41)
+Successful. Increasing lower bound to 42
+Trying batch size: 44 (factor: 44)
+Successful. Increasing lower bound to 45
+Trying batch size: 45 (factor: 45)
+Out of memory. Decreasing upper bound to 44
+Final max batch size for input length 1350: 44
+Added to dataset: 1350 tokens -> max batch size 44
+
+Processing input tokens: 1400
+Starting binary search for input length: 1400
+Trying batch size: 22 (factor: 22)
+Successful. Increasing lower bound to 23
+Trying batch size: 33 (factor: 33)
+Successful. Increasing lower bound to 34
+Trying batch size: 39 (factor: 39)
+Successful. Increasing lower bound to 40
+Trying batch size: 42 (factor: 42)
+Successful. Increasing lower bound to 43
+Trying batch size: 43 (factor: 43)
+Out of memory. Decreasing upper bound to 42
+Final max batch size for input length 1400: 42
+Added to dataset: 1400 tokens -> max batch size 42
+
+Processing input tokens: 1450
+Starting binary search for input length: 1450
+Trying batch size: 21 (factor: 21)
+Successful. Increasing lower bound to 22
+Trying batch size: 32 (factor: 32)
+Successful. Increasing lower bound to 33
+Trying batch size: 37 (factor: 37)
+Successful. Increasing lower bound to 38
+Trying batch size: 40 (factor: 40)
+Successful. Increasing lower bound to 41
+Trying batch size: 41 (factor: 41)
+Successful. Increasing lower bound to 42
+Trying batch size: 42 (factor: 42)
+Out of memory. Decreasing upper bound to 41
+Final max batch size for input length 1450: 41
+Added to dataset: 1450 tokens -> max batch size 41
+
+Processing input tokens: 1500
+Starting binary search for input length: 1500
+Trying batch size: 20 (factor: 20)
+Successful. Increasing lower bound to 21
+Trying batch size: 31 (factor: 31)
+Successful. Increasing lower bound to 32
+Trying batch size: 36 (factor: 36)
+Successful. Increasing lower bound to 37
+Trying batch size: 39 (factor: 39)
+Successful. Increasing lower bound to 40
+Trying batch size: 40 (factor: 40)
+Successful. Increasing lower bound to 41
+Trying batch size: 41 (factor: 41)
+Out of memory. Decreasing upper bound to 40
+Final max batch size for input length 1500: 40
+Added to dataset: 1500 tokens -> max batch size 40
+
+Processing input tokens: 1550
+Starting binary search for input length: 1550
+Trying batch size: 20 (factor: 20)
+Successful. Increasing lower bound to 21
+Trying batch size: 30 (factor: 30)
+Successful. Increasing lower bound to 31
+Trying batch size: 35 (factor: 35)
+Successful. Increasing lower bound to 36
+Trying batch size: 38 (factor: 38)
+Successful. Increasing lower bound to 39
+Trying batch size: 39 (factor: 39)
+Out of memory. Decreasing upper bound to 38
+Final max batch size for input length 1550: 38
+Added to dataset: 1550 tokens -> max batch size 38
+
+Processing input tokens: 1600
+Starting binary search for input length: 1600
+Trying batch size: 19 (factor: 19)
+Successful. Increasing lower bound to 20
+Trying batch size: 29 (factor: 29)
+Successful. Increasing lower bound to 30
+Trying batch size: 34 (factor: 34)
+Successful. Increasing lower bound to 35
+Trying batch size: 36 (factor: 36)
+Successful. Increasing lower bound to 37
+Trying batch size: 37 (factor: 37)
+Successful. Increasing lower bound to 38
+Trying batch size: 38 (factor: 38)
+Out of memory. Decreasing upper bound to 37
+Final max batch size for input length 1600: 37
+Added to dataset: 1600 tokens -> max batch size 37
+
+Processing input tokens: 1650
+Starting binary search for input length: 1650
+Trying batch size: 18 (factor: 18)
+Successful. Increasing lower bound to 19
+Trying batch size: 28 (factor: 28)
+Successful. Increasing lower bound to 29
+Trying batch size: 33 (factor: 33)
+Successful. Increasing lower bound to 34
+Trying batch size: 35 (factor: 35)
+Successful. Increasing lower bound to 36
+Trying batch size: 36 (factor: 36)
+Successful. Increasing lower bound to 37
+Trying batch size: 37 (factor: 37)
+Out of memory. Decreasing upper bound to 36
+Final max batch size for input length 1650: 36
+Added to dataset: 1650 tokens -> max batch size 36
+
+Processing input tokens: 1700
+Starting binary search for input length: 1700
+Trying batch size: 18 (factor: 18)
+Successful. Increasing lower bound to 19
+Trying batch size: 27 (factor: 27)
+Successful. Increasing lower bound to 28
+Trying batch size: 32 (factor: 32)
+Successful. Increasing lower bound to 33
+Trying batch size: 34 (factor: 34)
+Successful. Increasing lower bound to 35
+Trying batch size: 35 (factor: 35)
+Successful. Increasing lower bound to 36
+Trying batch size: 36 (factor: 36)
+Out of memory. Decreasing upper bound to 35
+Final max batch size for input length 1700: 35
+Added to dataset: 1700 tokens -> max batch size 35
+
+Processing input tokens: 1750
+Starting binary search for input length: 1750
+Trying batch size: 17 (factor: 17)
+Successful. Increasing lower bound to 18
+Trying batch size: 26 (factor: 26)
+Successful. Increasing lower bound to 27
+Trying batch size: 31 (factor: 31)
+Successful. Increasing lower bound to 32
+Trying batch size: 33 (factor: 33)
+Successful. Increasing lower bound to 34
+Trying batch size: 34 (factor: 34)
+Successful. Increasing lower bound to 35
+Trying batch size: 35 (factor: 35)
+Out of memory. Decreasing upper bound to 34
+Final max batch size for input length 1750: 34
+Added to dataset: 1750 tokens -> max batch size 34
+
+Processing input tokens: 1800
+Starting binary search for input length: 1800
+Trying batch size: 17 (factor: 17)
+Successful. Increasing lower bound to 18
+Trying batch size: 26 (factor: 26)
+Successful. Increasing lower bound to 27
+Trying batch size: 30 (factor: 30)
+Successful. Increasing lower bound to 31
+Trying batch size: 32 (factor: 32)
+Successful. Increasing lower bound to 33
+Trying batch size: 33 (factor: 33)
+Successful. Increasing lower bound to 34
+Trying batch size: 34 (factor: 34)
+Out of memory. Decreasing upper bound to 33
+Final max batch size for input length 1800: 33
+Added to dataset: 1800 tokens -> max batch size 33
+
+Processing input tokens: 1850
+Starting binary search for input length: 1850
+Trying batch size: 16 (factor: 16)
+Successful. Increasing lower bound to 17
+Trying batch size: 25 (factor: 25)
+Successful. Increasing lower bound to 26
+Trying batch size: 29 (factor: 29)
+Successful. Increasing lower bound to 30
+Trying batch size: 31 (factor: 31)
+Successful. Increasing lower bound to 32
+Trying batch size: 32 (factor: 32)
+Successful. Increasing lower bound to 33
+Trying batch size: 33 (factor: 33)
+Out of memory. Decreasing upper bound to 32
+Final max batch size for input length 1850: 32
+Added to dataset: 1850 tokens -> max batch size 32
+
+Processing input tokens: 1900
+Starting binary search for input length: 1900
+Trying batch size: 16 (factor: 16)
+Successful. Increasing lower bound to 17
+Trying batch size: 24 (factor: 24)
+Successful. Increasing lower bound to 25
+Trying batch size: 28 (factor: 28)
+Successful. Increasing lower bound to 29
+Trying batch size: 30 (factor: 30)
+Successful. Increasing lower bound to 31
+Trying batch size: 31 (factor: 31)
+Successful. Increasing lower bound to 32
+Trying batch size: 32 (factor: 32)
+Out of memory. Decreasing upper bound to 31
+Final max batch size for input length 1900: 31
+Added to dataset: 1900 tokens -> max batch size 31
+
+Processing input tokens: 1950
+Starting binary search for input length: 1950
+Trying batch size: 15 (factor: 15)
+Successful. Increasing lower bound to 16
+Trying batch size: 23 (factor: 23)
+Successful. Increasing lower bound to 24
+Trying batch size: 27 (factor: 27)
+Successful. Increasing lower bound to 28
+Trying batch size: 29 (factor: 29)
+Successful. Increasing lower bound to 30
+Trying batch size: 30 (factor: 30)
+Successful. Increasing lower bound to 31
+Trying batch size: 31 (factor: 31)
+Out of memory. Decreasing upper bound to 30
+Final max batch size for input length 1950: 30
+Added to dataset: 1950 tokens -> max batch size 30
+
+Processing input tokens: 2000
+Starting binary search for input length: 2000
+Trying batch size: 15 (factor: 15)
+Successful. Increasing lower bound to 16
+Trying batch size: 23 (factor: 23)
+Successful. Increasing lower bound to 24
+Trying batch size: 27 (factor: 27)
+Successful. Increasing lower bound to 28
+Trying batch size: 29 (factor: 29)
+Successful. Increasing lower bound to 30
+Trying batch size: 30 (factor: 30)
+Successful. Increasing lower bound to 31
+Final max batch size for input length 2000: 30
+Added to dataset: 2000 tokens -> max batch size 30
+Successful for input tokens: 50 and max batch size: 576
+Successful for input tokens: 100 and max batch size: 512
+Successful for input tokens: 150 and max batch size: 384
+Successful for input tokens: 200 and max batch size: 256
+Successful for input tokens: 250 and max batch size: 192
+Successful for input tokens: 300 and max batch size: 192
+Successful for input tokens: 350 and max batch size: 128
+Successful for input tokens: 400 and max batch size: 128
+Successful for input tokens: 450 and max batch size: 128
+Successful for input tokens: 500 and max batch size: 64
+Successful for input tokens: 550 and max batch size: 64
+Successful for input tokens: 600 and max batch size: 64
+Successful for input tokens: 650 and max batch size: 64
+Successful for input tokens: 700 and max batch size: 64
+Successful for input tokens: 750 and max batch size: 64
+Successful for input tokens: 800 and max batch size: 64
+Successful for input tokens: 850 and max batch size: 64
+Successful for input tokens: 900 and max batch size: 64
+Successful for input tokens: 950 and max batch size: 63
+Successful for input tokens: 1000 and max batch size: 60
+Successful for input tokens: 1050 and max batch size: 57
+Successful for input tokens: 1100 and max batch size: 54
+Successful for input tokens: 1150 and max batch size: 52
+Successful for input tokens: 1200 and max batch size: 50
+Successful for input tokens: 1250 and max batch size: 48
+Successful for input tokens: 1300 and max batch size: 46
+Successful for input tokens: 1350 and max batch size: 44
+Successful for input tokens: 1400 and max batch size: 42
+Successful for input tokens: 1450 and max batch size: 41
+Successful for input tokens: 1500 and max batch size: 40
+Successful for input tokens: 1550 and max batch size: 38
+Successful for input tokens: 1600 and max batch size: 37
+Successful for input tokens: 1650 and max batch size: 36
+Successful for input tokens: 1700 and max batch size: 35
+Successful for input tokens: 1750 and max batch size: 34
+Successful for input tokens: 1800 and max batch size: 33
+Successful for input tokens: 1850 and max batch size: 32
+Successful for input tokens: 1900 and max batch size: 31
+Successful for input tokens: 1950 and max batch size: 30
+Successful for input tokens: 2000 and max batch size: 30

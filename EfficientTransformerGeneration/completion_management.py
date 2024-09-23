@@ -191,9 +191,9 @@ class CompletionDataset:
     def get_batchsize(self, input_length: int) -> int:
 
         recorded_lengths = keys = [int(key) for key in self.gpu_dataset.keys()] 
-        next_input_length = str(next((l for l in recorded_lengths if l >= input_length), None))
-        if next_input_length != "None":
-            return self.gpu_dataset[next_input_length]
+        next_input_length = next((l for l in recorded_lengths if l >= input_length), None)
+        if next_input_length:
+            return self.gpu_dataset[str(next_input_length)]
         else:
             if self.verbose:
                 print(f"Input length {next_input_length} not found in dataset")

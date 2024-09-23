@@ -14,7 +14,7 @@ text_5 = "What is the capital of France?"
 text_6 = "Translate into english: Dunkel war's, der Mond schien helle, schneebedeckt die grüne Flur. Als ein Wagen blitzesschnelle langsam um die Ecke fuhr. Drinnen saßen stehend Leute schweigend ins Gespräch vertieft. Als ein totgeschoss'ner Hase auf der Sandbank Schlittschuh lief."
 
 dataset = []
-for i in range(200):
+for i in range(10):
     dataset.append({"prompt": text_1})
     dataset.append({"prompt": text_2})
     dataset.append({"prompt": text_3})
