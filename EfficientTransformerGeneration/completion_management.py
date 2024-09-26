@@ -88,6 +88,7 @@ class CompletionDataset:
         gpu_batch_size: int = 64,
         verbose: bool = False,
         fixed_batch_size: Optional[int] = None,
+        gpu_name = torch.cuda.get_device_name()
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -116,7 +117,7 @@ class CompletionDataset:
 
 
         model_name = model.config._name_or_path
-        gpu_name = torch.cuda.get_device_name()
+        
 
         gpu_dataset = load_gpu_dataset()
         setting_found = False
