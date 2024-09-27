@@ -88,7 +88,8 @@ class CompletionDataset:
         gpu_batch_size: int = 64,
         verbose: bool = False,
         fixed_batch_size: Optional[int] = None,
-        gpu_name = torch.cuda.get_device_name()
+        gpu_name = torch.cuda.get_device_name(),
+        max_length = None
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -112,6 +113,7 @@ class CompletionDataset:
         if self.completion_name in self.data.columns:
             self.data.loc[self.data[self.completion_name].notna(), "finished"] = True
         self.fixed_batch_size = fixed_batch_size
+        self.max_length = max_length
         if fixed_batch_size is not None:
             return
 
@@ -235,6 +237,8 @@ class CompletionDataset:
             for idx, completion in zip(indices, completions):
                 self.data.at[idx, "answer_tokens"] = completion.tolist()
                 self.data.loc[idx, "input_ids_length"] += len(completion)
+                if self.max_length is not None and self.data.loc[idx, "input_ids_length"] >= self.max_length:
+                    self.data.loc[idx, "finished"] = True
             return True
         except RuntimeError as e:
             if "CUDA out of memory" in str(e):
